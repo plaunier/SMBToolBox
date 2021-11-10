@@ -41,7 +41,15 @@ AdaptersDDL:
 	return
 }
 
+ModemsDDL:
+{
+	return
+}
 
+ScriptDDL:
+{
+	return
+}
 ;===============================================================================
 ; Functions
 ;===============================================================================
@@ -74,14 +82,14 @@ GuiCreate() {
 	yTop_Row0_Obj := 30
 	
 	yTop_Row1_Text := 70
-	yTop_Row1_Obj := 85
+	yTop_Row1_Obj := 87
 	yTop_Row2_Text := yTop_Row1_Text + 50
 	yTop_Row2_Obj := yTop_Row1_Obj + 50
-	yTop_Row3_Button := yTop_Row2_Text + 60
+	yTop_Row3_Button := yTop_Row2_Text + 65
 	
-	ySeperateTop := 230
+	ySeperateTop := yTop_Row3_Button + 42
 	yMid_Row1_Text := ySeperateTop + 20
-	yMid_Row1_Obj := yMid_Row1_Text + 15
+	yMid_Row1_Obj := yMid_Row1_Text + 17
 	
 	Gui,  +AlwaysOnTop
 	Gui, +LastFound -Resize +HWNDhGui
@@ -91,52 +99,65 @@ GuiCreate() {
 	; Top Row 0
 	Gui, Font, S11 CDefault Bold, Arial
 	Gui, Add, Text, x%xCol_1% y%yTop_Row0_Text% w140 h20, Select Adapter:
-	Gui, Font, S11 CDefault Normal, Courier
+	Gui, Font, S10 CDefault Normal, Arial
 	Gui, Add, DropDownList, x%xCol_1% y%yTop_Row0_Obj% w220 vAdaptersDDL gAdaptersDDL
 	
 	; Top Row 1
-	
-	Gui, Add, Text, x%xCol_1% y%yTop_Row1_Text% w80 h20 , Gateway:
+	Gui, Font, S9 CDefault Normal, Arial
+	Gui, Add, Text, x%xCol_1% y%yTop_Row1_Text% w80 h20, Gateway:
 	Gui, Add, Text, x%xCol_2% yp w140 h20 , Usable:
 	Gui, Add, Text, x%xCol_3% yp w140 h20, SubnetMask:
+	Gui, Font, S11 CDefault Normal, Courier
 	Gui, Add, Edit, x%xCol_2% y%yTop_Row1_Obj% w160 HWNDhUseable +ReadOnly +Center
 	Gui, Add, Edit, x%xCol_1% yp w160 HWNDhGateway +ReadOnly +Center
 	Gui, Add, DropDownList, x%xCol_3% yp w160 vSubnetsDDL, 255.255.255.252||255.255.255.248|255.255.255.240
 	
-	;~ Gui, Add, Text, x%xCol_1% y%yTop_Row1_Text% w80 h20 , Gateway:
-	;~ Gui, Add, Edit, x%xCol_1% y%yTop_Row1_Obj% w160 HWNDhGateway +ReadOnly +Center
-	;~ Gui, Add, Text, x%xCol_2% y%yTop_Row1_Text% w140 h20 , Usable:
-	;~ Gui, Add, Edit, x%xCol_2% y%yTop_Row1_Obj% w160 HWNDhUseable +ReadOnly +Center
-	;~ Gui, Add, Text, x%xCol_3% y%yTop_Row1_Text% w140, SubnetMask:
-	;~ Gui, Add, DropDownList, x%xCol_3% y%yTop_Row1_Obj% w160 vSubnetsDDL, 255.255.255.252||255.255.255.248|255.255.255.240
-	
 	; Top Row 2
+	Gui, Font, S9 CDefault Normal, Arial
 	Gui, Add, Text, x%xCol_1% y%yTop_Row2_Text% w140 h20 , RIP Key:
-	Gui, Add, Edit, x%xCol_1% y%yTop_Row2_Obj% w160 HWNDhRipKey +ReadOnly +Center
 	Gui, Add, Text, x%xCol_2% y%yTop_Row2_Text% w140 h20, DNS 1:
-	Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNSServer1 +ReadOnly +Center
 	Gui, Add, Text, x%xCol_3% y%yTop_Row2_Text% w140 h20, DNS 2:
+	Gui, Font, S11 CDefault Normal, Courier
+	Gui, Add, Edit, x%xCol_1% y%yTop_Row2_Obj% w160 HWNDhRipKey +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNSServer1 +ReadOnly +Center
 	Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 HWNDhDNSServer2 +ReadOnly +Center
 	
 	; Top Button Row
-	Gui, Font, S14 CDefault Bold, Arial
-	Gui, Add, Button, x%xCol_1% y%yTop_Row3_Button% w160 h30, PING GATEWAY
-	Gui, Add, Button, x%xCol_2% y%yTop_Row3_Button% w160 h30, STATIC
-	Gui, Add, Button, x%xCol_3% y%yTop_Row3_Button% w160 h30, DHCP
-	Gui, Font, S11 CDefault Normal, Courier
-	;Vertical Line
+	Gui, Font, S10 CDefault Bold, Arial
+	xButtonCol_1 := xCol_1 + 10
+	Gui, Add, Button, x%xButtonCol_1% y%yTop_Row3_Button% w140 h25, PING GATEWAY
+	Gui, Add, Button, x250 y%yTop_Row3_Button% w100 h25, STATIC
+	Gui, Add, Button, x%xCol_3% y%yTop_Row3_Button% w100 h25, DHCP
+	
+	; Vertical Line
 	Gui,  Add, Text, xm y%ySeperateTop% w520 0x10
 	
-	Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h20 , Modem IP (10 dot):
+	; Mid Row1
+	Gui, Font, S9 CDefault Normal, Arial
+	Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h20 , (10 dot) IP:
+	Gui, Add, Text, x%xCol_2% y%yMid_Row1_Text% w160 h20 , Modem Model:
+	Gui, Add, Text, x%xCol_3% y%yMid_Row1_Text% w160 h20 , Script:
+	Gui, Font, S11 CDefault Normal, Courier
 	Gui, Add, Edit, x%xCol_1% y%yMid_Row1_Obj% w160 HWNDhTenDot +Center	
+	; Gui, Font, S11 CDefault Normal, Arial
+	Gui, Add, DropDownList, x%xCol_2% y%yMid_Row1_Obj% w160 vModemsDDL gModemsDDL 
+	Gui, Add, DropDownList, x%xCol_3% y%yMid_Row1_Obj% w160 vScriptDDL gScriptDDL +ReadOnly
 	
+	Gui, Font, S8 CDefault Bold, Arial
+	Gui, Add, Button, x%xCol_1% y+20 w80 , Refresh
+	; Edit box for Script
+	Gui, Font, S11 CDefault Normal, Courier
+	; Gui, Font, S11 CDefault Normal, Arial
+	Gui, Add, Edit, x%xCol_1% y+5 h200 w520 vscroll +ReadOnly ,  Here is some text 192.168.100.100 	
 	
+	; Status
 	Gui, Add, Text, xm y+20 w160 HWNDhStatus,
 	Gui, Font, c666666
 	GuiControl, Font, % hStatus
-	Gui, Show, Autosize, BC ToolBox
+	Gui, Show, Autosize, SMB ToolBox
 	
-	;Get Adaptors
+	
+	; Get Adaptors
 	GuiControl,, % hStatus, Getting Adapters...
 	GuiControl, +Disabled, AdaptersDDL
 	RunWait, PowerShell.exe Get-NetAdapter | Format-Table -Property Name | Out-File -FilePath %A_Temp%\NetInfo.txt -Width 300,, Hide
