@@ -86,19 +86,6 @@ ButtonRefresh:
 	GuiControl,, ScriptText, Selected Adaptor= %AdaptersDDL%
 	return
 }
-
-CheckFocus:
-{
-	ControlGetFocus, OutputVar , SMB ToolBox
-	If (OutputVar="Edit2")
-		;GuiControl,,message, FOCUS
-		GuiControl,, % hStatus, FOCUS
-	else
-		GuiControl,, % hStatus, NO FOCUS
-		;GuiControl,,message, NO FOCUS
-	return	
-}
-
 ;===============================================================================
 ; Functions
 ;===============================================================================
@@ -218,8 +205,6 @@ GuiCreate() {
 	GuiControl, Font, % hStatus
 	
 	Gui, Show, x2000 y40 w540, SMB ToolBox
-	
-	SetTimer, CheckFocus, 500
 	
 	; Get Adaptors
 	GuiControl,, % hStatus, Getting Adapters...

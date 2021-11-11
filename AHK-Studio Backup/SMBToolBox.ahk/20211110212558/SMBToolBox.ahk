@@ -26,7 +26,7 @@ AdaptersDDL:
 	Gui, Submit, NoHide
 	GuiControl,, % hSelectedAdapter, % AdaptersDDL
 	GuiControl, -ReadOnly, % hGateway
-	GuiControl, -ReadOnly, % hUseable
+	;GuiControl, -ReadOnly, % hUseable
 	GuiControl,, % hRipKey, % Presets.rip
 	GuiControl,, % hDNSServer1, % Presets.d1
 	GuiControl,, % hDNSServer2, % Presets.d2
@@ -54,22 +54,20 @@ GatewayEdit:
 ButtonSTATIC:
 {
 	GuiControlGet, AdaptersDDL
-	GuiControlGet, Useable
-	GuiControlGet, SubnetsDDL
+	GuiControlGet, UseableIP
+	GuiControlGet, SubnetMask
 	GuiControlGet, Gateway
 	GuiControlGet, DNSServer1
 	GuiControlGet, DNSServer2
-	
-	GuiControl,, ScriptText, Adapter= %AdaptersDDL%`nUseable= %Useable%`nSubnet= %SubnetsDDL%`nGateway= %Gateway%`nDNS1= %DNSServer1%`nDNS2=%DNSServer2%
-	;~ run, %comspec% /c netsh interface ipv4 set address name="%SelectedAdapter%" static %Useable% %SubnetMask% %Gateway%,,hide
-	;~ run, %comspec% /c netsh interface ipv4 set dns name="%SelectedAdapter%" static %DNSServer1%,,hide
-	;~ if (UnqDNS2 = "") 
-	;~ {    
-	;~ run, %comspec% /c netsh delete dnsserver "%SelectedAdapter%" index=2,,hide
-	;~ return
-	;~ }
-	;~ Else
-	;~ run, %comspec% /c  netsh interface ip add dns "%SelectedAdapter%" %DNSServer2% index=2,,hide
+	run, %comspec% /c netsh interface ipv4 set address name="%SelectedAdapter%" static %UseableIP% %SubnetMask% %Gateway%,,hide
+	run, %comspec% /c netsh interface ipv4 set dns name="%SelectedAdapter%" static %DNSServer1%,,hide
+	if (UnqDNS2 = "") 
+	{    
+		run, %comspec% /c netsh delete dnsserver "%SelectedAdapter%" index=2,,hide
+		return
+	}
+	Else
+		run, %comspec% /c  netsh interface ip add dns "%SelectedAdapter%" %DNSServer2% index=2,,hide
 	return
 }
 
@@ -86,19 +84,6 @@ ButtonRefresh:
 	GuiControl,, ScriptText, Selected Adaptor= %AdaptersDDL%
 	return
 }
-
-CheckFocus:
-{
-	ControlGetFocus, OutputVar , SMB ToolBox
-	If (OutputVar="Edit2")
-		;GuiControl,,message, FOCUS
-		GuiControl,, % hStatus, FOCUS
-	else
-		GuiControl,, % hStatus, NO FOCUS
-		;GuiControl,,message, NO FOCUS
-	return	
-}
-
 ;===============================================================================
 ; Functions
 ;===============================================================================
@@ -161,8 +146,8 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_2% yp w140 h20, Usable:
 	Gui, Add, Text, x%xCol_3% yp w140 h20, SubnetMask:
 	Gui, Font, S11 CDefault Normal, Courier
-	Gui, Add, Edit, x%xCol_1% y%yTop_Row1_Obj% w160 HWNDhGateway vGateway +ReadOnly +Center
-	Gui, Add, Edit, x%xCol_2% yp w160 HWNDhUseable vUseable +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_1% y%yTop_Row1_Obj% w160 HWNDhGateway +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_2% yp w160 HWNDhUseable vUseableIP +ReadOnly +Center
 	Gui, Add, DropDownList, x%xCol_3% yp w160 vSubnetsDDL, 255.255.255.252||255.255.255.248|255.255.255.240
 	
 	; Top Row 2
@@ -172,8 +157,8 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_3% y%yTop_Row2_Text% w140 h20, DNS 2:
 	Gui, Font, S11 CDefault Normal, Courier
 	Gui, Add, Edit, x%xCol_1% y%yTop_Row2_Obj% w160 HWNDhRipKey +ReadOnly +Center
-	Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNSServer1 vDNSServer1 +ReadOnly +Center
-	Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 HWNDhDNSServer2 vDNSServer2 +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNSServer1 +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 HWNDhDNSServer2 +ReadOnly +Center
 	
 	; Top Button Row
 	Gui, Font, S10 CDefault Bold, Arial
@@ -216,10 +201,8 @@ GuiCreate() {
 	Gui, Add, Text, xm y+20 w160 HWNDhStatus,
 	Gui, Font, c666666
 	GuiControl, Font, % hStatus
+	Gui, Show, Autosize, SMB ToolBox
 	
-	Gui, Show, x2000 y40 w540, SMB ToolBox
-	
-	SetTimer, CheckFocus, 500
 	
 	; Get Adaptors
 	GuiControl,, % hStatus, Getting Adapters...

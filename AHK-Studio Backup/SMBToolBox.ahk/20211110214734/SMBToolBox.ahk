@@ -90,12 +90,12 @@ ButtonRefresh:
 CheckFocus:
 {
 	ControlGetFocus, OutputVar , SMB ToolBox
-	If (OutputVar="Edit2")
-		;GuiControl,,message, FOCUS
-		GuiControl,, % hStatus, FOCUS
+	If (OutputVar="Edit1")
+		GuiControl,,message, FOCUS
+	;GuiControl,, % hStatus, FOCUS
 	else
 		GuiControl,, % hStatus, NO FOCUS
-		;GuiControl,,message, NO FOCUS
+	;GuiControl,,message, NO FOCUS
 	return	
 }
 

@@ -60,7 +60,7 @@ ButtonSTATIC:
 	GuiControlGet, DNSServer1
 	GuiControlGet, DNSServer2
 	
-	GuiControl,, ScriptText, Adapter= %AdaptersDDL%`nUseable= %Useable%`nSubnet= %SubnetsDDL%`nGateway= %Gateway%`nDNS1= %DNSServer1%`nDNS2=%DNSServer2%
+	GuiControl,, ScriptText, Adapter= %AdaptersDDL%`nUseable=%Useable%`nSubnet=%SubnetsDDL%
 	;~ run, %comspec% /c netsh interface ipv4 set address name="%SelectedAdapter%" static %Useable% %SubnetMask% %Gateway%,,hide
 	;~ run, %comspec% /c netsh interface ipv4 set dns name="%SelectedAdapter%" static %DNSServer1%,,hide
 	;~ if (UnqDNS2 = "") 
@@ -86,19 +86,6 @@ ButtonRefresh:
 	GuiControl,, ScriptText, Selected Adaptor= %AdaptersDDL%
 	return
 }
-
-CheckFocus:
-{
-	ControlGetFocus, OutputVar , SMB ToolBox
-	If (OutputVar="Edit2")
-		;GuiControl,,message, FOCUS
-		GuiControl,, % hStatus, FOCUS
-	else
-		GuiControl,, % hStatus, NO FOCUS
-		;GuiControl,,message, NO FOCUS
-	return	
-}
-
 ;===============================================================================
 ; Functions
 ;===============================================================================
@@ -218,8 +205,6 @@ GuiCreate() {
 	GuiControl, Font, % hStatus
 	
 	Gui, Show, x2000 y40 w540, SMB ToolBox
-	
-	SetTimer, CheckFocus, 500
 	
 	; Get Adaptors
 	GuiControl,, % hStatus, Getting Adapters...

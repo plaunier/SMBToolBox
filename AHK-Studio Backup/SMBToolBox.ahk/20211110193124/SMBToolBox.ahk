@@ -15,11 +15,18 @@ OnExit("OnUnload") 		; Run a subroutine or function when exiting the script
 return 					; End automatic execution
 
 
+;===============================================================================
+; GUI
+;===============================================================================
 
 
 ;===============================================================================
 ; Labels
 ;===============================================================================
+
+;GuiClose:
+;ExitApp
+;return
 
 AdaptersDDL: 
 {
@@ -27,9 +34,9 @@ AdaptersDDL:
 	GuiControl,, % hSelectedAdapter, % AdaptersDDL
 	GuiControl, -ReadOnly, % hGateway
 	GuiControl, -ReadOnly, % hUseable
-	GuiControl,, % hRipKey, % Presets.rip
-	GuiControl,, % hDNSServer1, % Presets.d1
-	GuiControl,, % hDNSServer2, % Presets.d2
+	GuiControl,, % hRipKey, auth#rip
+	GuiControl,, % hDNSServer1, 24.97.208.121
+	GuiControl,, % hDNSServer2, 24.97.208.122
 	
 	return
 }
@@ -43,62 +50,6 @@ ScriptDDL:
 {
 	return
 }
-
-GatewayEdit:
-{
-	MsgBox test
-	;GuiControl, -ReadOnly, % hGateway
-	return
-}
-
-ButtonSTATIC:
-{
-	GuiControlGet, AdaptersDDL
-	GuiControlGet, Useable
-	GuiControlGet, SubnetsDDL
-	GuiControlGet, Gateway
-	GuiControlGet, DNSServer1
-	GuiControlGet, DNSServer2
-	
-	GuiControl,, ScriptText, Adapter= %AdaptersDDL%`nUseable= %Useable%`nSubnet= %SubnetsDDL%`nGateway= %Gateway%`nDNS1= %DNSServer1%`nDNS2=%DNSServer2%
-	;~ run, %comspec% /c netsh interface ipv4 set address name="%SelectedAdapter%" static %Useable% %SubnetMask% %Gateway%,,hide
-	;~ run, %comspec% /c netsh interface ipv4 set dns name="%SelectedAdapter%" static %DNSServer1%,,hide
-	;~ if (UnqDNS2 = "") 
-	;~ {    
-	;~ run, %comspec% /c netsh delete dnsserver "%SelectedAdapter%" index=2,,hide
-	;~ return
-	;~ }
-	;~ Else
-	;~ run, %comspec% /c  netsh interface ip add dns "%SelectedAdapter%" %DNSServer2% index=2,,hide
-	return
-}
-
-ButtonDHCP:
-{
-	;run, %ComSpec% /c netsh interface ip set address "%SelectedAdapter%" dhcp,,hide
-	
-	return
-}
-
-ButtonRefresh:
-{
-	GuiControlGet, AdaptersDDL
-	GuiControl,, ScriptText, Selected Adaptor= %AdaptersDDL%
-	return
-}
-
-CheckFocus:
-{
-	ControlGetFocus, OutputVar , SMB ToolBox
-	If (OutputVar="Edit2")
-		;GuiControl,,message, FOCUS
-		GuiControl,, % hStatus, FOCUS
-	else
-		GuiControl,, % hStatus, NO FOCUS
-		;GuiControl,,message, NO FOCUS
-	return	
-}
-
 ;===============================================================================
 ; Functions
 ;===============================================================================
@@ -108,17 +59,25 @@ OnLoad() {
 	Static Init := OnLoad() ; Call function
 	
 	Menu, Tray, Tip, BC ToolBox
+	ReplaceValue := {"IP": "192.168.1.10", "SM": "255.255.255.0", "GW": "192.168.1.1", "DNS1": "8.8.8.8", "DNS2": "8.8.4.4"}
+	MsgBox % ReplaceValue.SM
+	Presets := []
+	Presets[1] := {"IP": "192.168.1.10", "SM": "255.255.255.0", "GW": "192.168.1.1", "DNS1": "8.8.8.8", "DNS2": "8.8.4.4"}
+	Presets[2] := {"IP": "192.168.2.10", "SM": "255.255.255.0", "GW": "192.168.2.1", "DNS1": "8.8.8.8", "DNS2": "8.8.4.4"}
+	Presets[3] := {"IP": "192.168.3.10", "SM": "255.255.255.0", "GW": "192.168.3.1", "DNS1": "8.8.8.8", "DNS2": "8.8.4.4"}
+	Presets[4] := {"IP": "192.168.4.10", "SM": "255.255.255.0", "GW": "192.168.4.1", "DNS1": "8.8.8.8", "DNS2": "8.8.4.4"}
+	Presets[5] := {"IP": "192.168.5.10", "SM": "255.255.255.0", "GW": "192.168.5.1", "DNS1": "8.8.8.8", "DNS2": "8.8.4.4"}
+	Presets[6] := {"IP": "192.168.6.10", "SM": "255.255.255.0", "GW": "192.168.6.1", "DNS1": "8.8.8.8", "DNS2": "8.8.4.4"}
+	Presets[7] := {"IP": "192.168.7.10", "SM": "255.255.255.0", "GW": "192.168.7.1", "DNS1": "8.8.8.8", "DNS2": "8.8.4.4"}
 	
-	Presets := {"d1": "8.8.8.8", "d2": "8.8.4.4", "rip": "auth#rip", "host": "SPECTRUM"}
-	;Presets := {"d1": "24.97.208.121", "d2": "24.97.208.122", "rip": "auth#rip", "host": "SPECTRUM"}
-	ReplaceValue := {"NET": "[NETWORK]", "GW": "[GATEWAY]", "USE": "[USEABLE]", "SUB": "[SUBNET]", "D1": "[DNS1]", "D2": "[DNS2]", "RIP": "[RIPKEY]", "HOST": "[HOSTNAME]"}
+	
 	
 	If (FileExist(A_Temp "\NetInfo.txt")) {
 		FileDelete, %A_Temp%\NetInfo.txt
 	}
 	
 }
-
+	
 OnUnload(ExitReason, ExitCode) {
 	Global ; Assume-global mode
 }
@@ -158,11 +117,11 @@ GuiCreate() {
 	; Top Row 1
 	Gui, Font, S9 CDefault Normal, Arial
 	Gui, Add, Text, x%xCol_1% y%yTop_Row1_Text% w80 h20, Gateway:
-	Gui, Add, Text, x%xCol_2% yp w140 h20, Usable:
+	Gui, Add, Text, x%xCol_2% yp w140 h20 , Usable:
 	Gui, Add, Text, x%xCol_3% yp w140 h20, SubnetMask:
 	Gui, Font, S11 CDefault Normal, Courier
-	Gui, Add, Edit, x%xCol_1% y%yTop_Row1_Obj% w160 HWNDhGateway vGateway +ReadOnly +Center
-	Gui, Add, Edit, x%xCol_2% yp w160 HWNDhUseable vUseable +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_2% y%yTop_Row1_Obj% w160 HWNDhUseable +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_1% yp w160 HWNDhGateway +ReadOnly +Center
 	Gui, Add, DropDownList, x%xCol_3% yp w160 vSubnetsDDL, 255.255.255.252||255.255.255.248|255.255.255.240
 	
 	; Top Row 2
@@ -172,8 +131,8 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_3% y%yTop_Row2_Text% w140 h20, DNS 2:
 	Gui, Font, S11 CDefault Normal, Courier
 	Gui, Add, Edit, x%xCol_1% y%yTop_Row2_Obj% w160 HWNDhRipKey +ReadOnly +Center
-	Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNSServer1 vDNSServer1 +ReadOnly +Center
-	Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 HWNDhDNSServer2 vDNSServer2 +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNSServer1 +ReadOnly +Center
+	Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 HWNDhDNSServer2 +ReadOnly +Center
 	
 	; Top Button Row
 	Gui, Font, S10 CDefault Bold, Arial
@@ -191,7 +150,7 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_2% y%yMid_Row1_Text% w160 h20 , Modem Model:
 	Gui, Add, Text, x%xCol_3% y%yMid_Row1_Text% w160 h20 , Script:
 	Gui, Font, S11 CDefault Normal, Courier
-	Gui, Add, Edit, x%xCol_1% y%yMid_Row1_Obj% w160 vTenDot +Center	
+	Gui, Add, Edit, x%xCol_1% y%yMid_Row1_Obj% w160 HWNDhTenDot +Center	
 	; Gui, Font, S11 CDefault Normal, Arial
 	Gui, Add, DropDownList, x%xCol_2% y%yMid_Row1_Obj% w160 vModemsDDL gModemsDDL 
 	Gui, Add, DropDownList, x%xCol_3% y%yMid_Row1_Obj% w160 vScriptDDL gScriptDDL +ReadOnly
@@ -210,16 +169,14 @@ GuiCreate() {
 	Gui, Add, Button, x%xCol_1% y+1 w80 h20, Refresh
 	Gui, Font, S11 CDefault Normal, Courier
 	; Gui, Font, S11 CDefault Normal, Arial
-	Gui, Add, Edit, x%xCol_1% y+5 h200 w520 HWNDhScriptText vScriptText vscroll
+	Gui, Add, Edit, x%xCol_1% y+5 h200 w520 vscroll +ReadOnly ,  Here is some text 192.168.100.100 	
 	
 	; Status
 	Gui, Add, Text, xm y+20 w160 HWNDhStatus,
 	Gui, Font, c666666
 	GuiControl, Font, % hStatus
+	Gui, Show, Autosize, SMB ToolBox
 	
-	Gui, Show, x2000 y40 w540, SMB ToolBox
-	
-	SetTimer, CheckFocus, 500
 	
 	; Get Adaptors
 	GuiControl,, % hStatus, Getting Adapters...
