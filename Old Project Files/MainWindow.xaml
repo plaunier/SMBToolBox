@@ -1,0 +1,169 @@
+﻿<Window x:Class="BCToolBox.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BCToolBox"
+        mc:Ignorable="d"
+        Title="Spectrum Business" Height="490" Width="480" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen">
+
+    <Border Padding="10 0 10 10">
+        <StackPanel>
+            <!-- Customer Information -->
+            <Border Padding="10 5 10 10" Margin="0 0 0 5" BorderBrush="Black" BorderThickness="1">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="2*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="0 0 0 5" FontWeight="Bold" FontSize="13" HorizontalAlignment="Left"
+                                Text="Customer Information"/>
+                        <TextBlock x:Name="tblInfoErrorText" Grid.Column="1" Margin="0 0 0 5" FontSize="12"  HorizontalAlignment="Center" Foreground="Red" />
+                        <!-- Settings Button -->
+                        <Button x:Name="btnSettings" Grid.Column="1" HorizontalAlignment="Right" Height="16" ToolTip="Settings"
+                                Click="BtnSettings_Click">
+                            <Image Source="images/cogwheel.png" />
+                        </Button>
+                    </Grid>
+
+                    <Grid Margin="0 0 0 5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0 0 5 0">
+                            <Grid Margin="0 0 0 2" >
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <!-- Gateway Label-->
+                                <TextBlock Text="Gateway" Grid.Column="0" />
+                                <Button x:Name="btnPasteGateway" Content="Paste" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Height="14" FontSize="10" Padding="2 -1 2 0" FontWeight="Bold" 
+                                        Click="BtnPasteGateway_Click"/>
+                            </Grid>
+                            <TextBox x:Name="tboxGateway" Margin="0 0 0 5" Padding="2" TextAlignment="Center" FontFamily="Courier New" MaxLength="15" 
+                                     TextChanged="TboxGateway_TextChanged" 
+                                     LostFocus="TboxGateway_LostFocus"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="5 0 5 0">
+                            <!-- Usable Label-->
+                            <TextBlock Text="Useable" Margin="0 0 0 2" />
+                            <TextBox x:Name="tboxUseable" ToolTip="Double Click to Edit" Padding="2" TextAlignment="Center" FontFamily="Courier New" MaxLength="15" IsReadOnly="True" Background="#eee"
+                                     MouseDoubleClick="TboxUseable_MouseDoubleClick"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Margin="5 0 0 0" >
+                            <!-- Subnet Label-->
+                            <TextBlock Text="Subnet" Margin="0 0 0 2"/>
+                            <TextBox x:Name="tboxSubnet" ToolTip="Double Click to Edit" Padding="2" TextAlignment="Center" FontFamily="Courier New" MaxLength="15" IsReadOnly="True" Background="#eee"
+                                     MouseDoubleClick="TboxSubnet_MouseDoubleClick" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0 0 5 0">
+                            <Grid Margin="0 0 0 2" >
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <!-- TenDot Label-->
+                                <TextBlock Text="Ten Dot" Grid.Column="0" />
+                                <Button x:Name="btnPasteTenDot" Content="Paste" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Height="14" FontSize="10" Padding="2 -1 2 0" FontWeight="Bold" 
+                                        Click="BtnPasteTenDot_Click" />
+                            </Grid>
+                            <TextBox x:Name="tboxTenDot" Margin="0 0 0 0" Padding="2" TextAlignment="Center" FontFamily="Courier New" MaxLength="15" 
+                                     TextChanged="TboxTenDot_TextChanged" 
+                                     LostFocus="TboxTenDot_LostFocus" />
+                        </StackPanel>
+                        <Button x:Name="btnPingGateway" Content="Ping Gateway" Grid.Column="1"  Padding="5 0 5 1"  Margin="5 0 0 0" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="10" FontWeight="Bold" 
+                                Click="BtnPingGateway_Click"/>
+                        <Border Grid.Column="2" Margin="5 0 0 0" Padding="2 0 2 2" BorderBrush="Black" BorderThickness="1" Background="WhiteSmoke" >
+                            <StackPanel Grid.Column="2" Margin="0 0 0 0">
+                                <TextBlock x:Name="tbNetworkSetting" Text="Network Adaptor Settings" Margin="0 0 0 2" HorizontalAlignment="Center" FontSize="10" 
+                                           PreviewMouseDown="tbNetworkSetting_PreviewMouseDown" />
+                                <Grid>
+                                    <Button x:Name="btnStatic" Content="STATIC" Padding="5 0 5 0" Margin="0 0 0 0" HorizontalAlignment="Left" VerticalAlignment="Bottom" FontSize="12" FontWeight="Bold" 
+                                            Click="BtnStatic_Click" />
+                                    <Button x:Name="btnDHCP" Content="DHCP" Padding="5 0 5 0"  Margin="0 0 0 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="12" FontWeight="Bold" 
+                                            Click="BtnDHCP_Click" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Scripting Actions -->
+            <Border Padding="10 5 10 10" Margin="0 0 0 5" BorderBrush="Black" BorderThickness="1">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="2*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="0 0 0 5" FontWeight="Bold" FontSize="13" HorizontalAlignment="Left"
+                                Text="Scripting"/>
+                        <TextBlock x:Name="tblScriptingErrorText" Grid.Column="1" Margin="0 0 0 5" FontSize="12"  HorizontalAlignment="Center" Foreground="Red" />
+                    </Grid>
+
+                    <Grid Margin="0 0 0 10" >
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="22*" />
+                            <ColumnDefinition Width="31*" />
+                            <ColumnDefinition Width="33*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0 0 5 0">
+                            <TextBlock Text="Jump Box" Margin="0 0 0 2" />
+                            <ComboBox x:Name="cbJumpBox" 
+                                      SelectionChanged="CbJumpBox_SelectionChanged"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="0 0 5 0">
+                            <TextBlock Text="Modem" Margin="0 0 0 2" />
+                            <ComboBox x:Name="cbModem" 
+                                      SelectionChanged="CbModem_SelectionChanged"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Margin="0 0 0 0">
+                            <TextBlock Text="Script" Margin="0 0 0 2" />
+                            <ComboBox x:Name="cbScript" IsEnabled="False"
+                                      SelectionChanged="CbScript_SelectionChanged"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="133*" />
+                            <ColumnDefinition Width="82*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="btnTunnel" Content="Create Tunnel" Grid.Column="0" Padding="5 0 5 0" HorizontalAlignment="Left" FontWeight="Bold" IsEnabled="False"
+                                Click="BtnTunnel_Click"/>
+                        <Button x:Name="btnConnectSsh" Content="CONNECT" Grid.Column="1" Padding="5 0 5 0" HorizontalAlignment="Right" FontWeight="Bold" FontSize="14"
+                                Click="BtnConnectSsh_Click" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+            <Grid Margin="0 10 0 5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="85*" />
+                    <ColumnDefinition Width="367*" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="btnReloadScript" Grid.Column="0" Content="Reload" Padding="5 1 5 1" HorizontalAlignment="Left" FontWeight="Bold" IsEnabled="False"
+                        Click="BtnReloadScript_Click"/>
+                <Button x:Name="btnCopyScript" Grid.Column="1" Content="Copy" Padding="5 1 5 1" HorizontalAlignment="Left" FontWeight="Bold" IsEnabled="False" 
+                        Click="BtnCopyScript_Click"/>
+            </Grid>
+            <TextBox x:Name="tboxScript" TextWrapping="NoWrap" AcceptsReturn="True" FontFamily="Courier New"
+                Height="170" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Auto"/>
+        </StackPanel>
+    </Border>
+</Window>
