@@ -99,6 +99,7 @@ CheckFocus:
 	return	
 }
 
+
 ;===============================================================================
 ; Functions
 ;===============================================================================
@@ -108,6 +109,14 @@ OnLoad() {
 	Static Init := OnLoad() ; Call function
 	
 	Menu, Tray, Tip, BC ToolBox
+	
+	Gui, 9:+AlwaysOnTop -Caption
+	Gui, 9:Margin, 10, 10
+	Gui, 9:Add, Picture,, %A_WorkingDir%\images\splash_400x127.png
+	Gui, 9:Show
+	
+	Sleep, 2000
+	Gui,  9:Destroy
 	
 	Presets := {"d1": "8.8.8.8", "d2": "8.8.4.4", "rip": "auth#rip", "host": "SPECTRUM"}
 	;Presets := {"d1": "24.97.208.121", "d2": "24.97.208.122", "rip": "auth#rip", "host": "SPECTRUM"}
@@ -144,8 +153,7 @@ GuiCreate() {
 	yMid_Row1_Text := ySeperateTop + 20
 	yMid_Row1_Obj := yMid_Row1_Text + 17
 	
-	Gui,  +AlwaysOnTop
-	Gui, +LastFound -Resize +HWNDhGui
+	Gui, +AlwaysOnTop +LastFound -Resize +HWNDhGui
 	Gui, Margin, 10, 10
 	Gui, Font, S11 CDefault Normal, Courier
 	
@@ -217,7 +225,8 @@ GuiCreate() {
 	Gui, Font, c666666
 	GuiControl, Font, % hStatus
 	
-	Gui, Show, x2000 y40 w540, SMB ToolBox
+	;Gui, Show, x2000 y40 w540, SMB ToolBox
+	Gui, Show, w540, SMB ToolBox
 	
 	SetTimer, CheckFocus, 500
 	
@@ -230,18 +239,22 @@ GuiCreate() {
 	
 	Loop, Read, %A_Temp%\NetInfo.txt
 	{
-		If (A_Index < 4 || A_LoopReadLine = "") {
+		If (A_Index < 4 || A_LoopReadLine = "" || Instr(A_LoopReadLine, "Bluetooth")) {
 			Continue
 		}
 		
-		Adapters .= RegexReplace(A_LoopReadLine, "^\s+|\s+$") "|"
+		aName := Trim(A_LoopReadLine)
+		If (aName = "Ethernet")
+			Adapters .= RegexReplace(A_LoopReadLine, "^\s+|\s+$") "||"
+		Else
+			Adapters .= RegexReplace(A_LoopReadLine, "^\s+|\s+$") "|"
 	}
 	
 	If (FileExist(A_Temp "\NetInfo.txt")) {
 		FileDelete, %A_Temp%\NetInfo.txt
 	}
 	
-	Sort, Adapters, UD|
+	;Sort, Adapters, UD|
 	GuiControl,, AdaptersDDL, % Adapters
 	GuiControl, -Disabled, AdaptersDDL
 	GuiControl,, % hStatus, Ready
