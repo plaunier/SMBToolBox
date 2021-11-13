@@ -32,6 +32,7 @@ AdaptersDDL:
 {
 	Gui, Submit, NoHide
 	GuiControl,, % hSelectedAdapter, % AdaptersDDL
+	;GuiControl,, % hGateway, 10.120.166.1
 	;GuiControl, -ReadOnly, % hGateway
 	;GuiControl, -ReadOnly, % hUseable
 	;GuiControl,, % hRipKey, % Presets.rip
@@ -53,6 +54,8 @@ ScriptDDL:
 
 GW_Label:
 {
+	;GuiControl,, % hUseable, 10.120.166.230
+	;return
 	GuiControlGet, Gateway
 	If (ValidIP(Gateway)) {
 		StringSplit, Octets, Gateway, .
@@ -62,6 +65,7 @@ GW_Label:
 		
 		GuiControl,, Useable, %Octets1%.%Octets2%.%Octets3%.%Octets4%
 	}
+	
 	return
 }
 
@@ -112,8 +116,13 @@ ButtonDHCP:
 	MsgBox,308,Set DHCP?,Set DHCP on this PC?
 	IfMsgBox Yes
 	{
-		args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp"
-		Run, *RunAs %comspec% %args%
+		;psArgs := "Get-NetIPAddress -InterfaceAlias '" AdaptersDDL "' | Remove-NetRoute"
+		;psArgs := "Set-DnsClientServerAddress -InterfaceAlias '" AdaptersDDL " -ResetServerAddresses"
+		;Run PowerShell -Command %psArgs%
+		Run, *RunAs PowerShell.exe -Command Set-DnsClientServerAddress -InterfaceAlias '%AdaptersDDL%' -ResetServerAddresses
+		
+		;args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp"
+		;Run, *RunAs %comspec% %args%
 	}
 	return
 }
@@ -122,15 +131,13 @@ ButtonDHCP:
 	{
 		GuiControlGet, TenDot
 		If (ValidIP(TenDot)) {
-			
-			
+			Process, Close, %tunnelPID%
 			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
-			loginArg := "-ssh " JumpBox[1].address " -P " JumpBox[1].port " -l " JumpBox[1].user + " -pw " + JumpBox[1].pw
+			loginArg := "-ssh " JumpBox[1].address " -P " JumpBox[1].port " -l " JumpBox[1].user " -pw " JumpBox[1].pw
 			tunnelArg := "-L 80:" TenDot ":80 -L 8080:" TenDot ":8080"
 			target := fileName " " loginArg " " tunnelArg
-			;MsgBox % fileName "`n" loginArg "`n" tunnelArg
-			;MsgBox % target
-			Run, %target%, %A_WorkingDir%\KiTTY, Minimize
+			
+			Run, %target%, %A_WorkingDir%\KiTTY, Minimize Hide, tunnelPID
 		} Else 
 			setStatus("Invalid 10(dot) IP")
 		return
@@ -181,6 +188,7 @@ ButtonDHCP:
 	
 	OnUnload(ExitReason, ExitCode) {
 		Global ; Assume-global mode
+		Process, Close, %tunnelPID%
 	}
 	
 	GuiCreate() {
@@ -222,7 +230,7 @@ ButtonDHCP:
 		Gui, Font, S11 CDefault Normal, Courier
 		Gui, Add, Edit, x%xCol_1% y%yTop_Row1_Obj% w160 HWNDhGateway gGW_Label vGateway +Center
 		Gui, Add, Edit, x%xCol_2% yp w160 HWNDhUseable gUseableIP_Label vUseable +Center
-		Gui, Add, DropDownList, x%xCol_3% yp w160 vSubnetsDDL, 255.255.255.252||255.255.255.248|255.255.255.240
+		Gui, Add, DropDownList, x%xCol_3% yp w160 vSubnetsDDL, 255.255.255.252||255.255.255.248|255.255.255.240|255.255.255.0
 		
 		; Top Row 2
 		Gui, Font, S9 CDefault Normal, Arial
@@ -246,7 +254,7 @@ ButtonDHCP:
 		
 		; Mid Row1
 		Gui, Font, S9 CDefault Normal, Arial
-		Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h20, 10(dot) IP:
+		Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h20, Modem IP - 10(dot):
 		Gui, Add, Text, x%xCol_2% y%yMid_Row1_Text% w160 h20 , Modem Model:
 		Gui, Add, Text, x%xCol_3% y%yMid_Row1_Text% w160 h20 , Script:
 		Gui, Font, S11 CDefault Normal, Courier
@@ -307,6 +315,8 @@ ButtonDHCP:
 		GuiControl,, AdaptersDDL, % Adapters
 		GuiControl, -Disabled, AdaptersDDL
 		GuiControl,, % hStatus, Ready
+		
+		
 		
 		
 		return
