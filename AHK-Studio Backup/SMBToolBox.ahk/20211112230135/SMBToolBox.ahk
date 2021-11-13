@@ -112,7 +112,7 @@ ButtonDHCP:
 	MsgBox,308,Set DHCP?,Set DHCP on this PC?
 	IfMsgBox Yes
 	{
-		args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp"
+		args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp & PAUSE"
 		Run, *RunAs %comspec% %args%
 	}
 	return

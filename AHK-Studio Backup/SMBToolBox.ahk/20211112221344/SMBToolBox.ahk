@@ -113,7 +113,7 @@ ButtonDHCP:
 	IfMsgBox Yes
 	{
 		args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp"
-		Run, *RunAs %comspec% %args%
+		Run, *RunAs %comspec% %args%,,hide
 	}
 	return
 }

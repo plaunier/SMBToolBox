@@ -99,7 +99,7 @@ ButtonSTATIC:
 		MsgBox,308,Set Static?,Set a Static IP on this PC?`n%Useable%
 		IfMsgBox Yes
 		{
-			args := " /c netsh interface ipv4 set address " AdaptersDDL " static " Useable " " SubnetsDDL " " GateWay " & netsh interface ipv4 set dns " AdaptersDDL " static " DNS1 " & netsh interface ipv4 add dns " AdaptersDDL " addr=" DNS2 " index=2"
+			args := " /c netsh interface ip set address " AdaptersDDL " static " Useable " " SubnetsDDL " " GateWay " & netsh interface ip set dns " AdaptersDDL " static " DNS1 " & netsh interface ip add dns " AdaptersDDL " addr=" DNS2 " index=2"
 			Run, *RunAs %comspec% %args%,,hide
 		}
 	}
@@ -112,8 +112,8 @@ ButtonDHCP:
 	MsgBox,308,Set DHCP?,Set DHCP on this PC?
 	IfMsgBox Yes
 	{
-		args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp"
-		Run, *RunAs %comspec% %args%
+		args := " /c netsh interface ip set address " AdaptersDDL " dhcp"
+		Run, *RunAs %comspec% %args%,,hide
 	}
 	return
 }

@@ -28,6 +28,8 @@ ReadyStatus:
 	return
 }
 
+
+
 AdaptersDDL: 
 {
 	Gui, Submit, NoHide
@@ -35,8 +37,8 @@ AdaptersDDL:
 	;GuiControl, -ReadOnly, % hGateway
 	;GuiControl, -ReadOnly, % hUseable
 	;GuiControl,, % hRipKey, % Presets.rip
-	;GuiControl,, % hDNS1, % Presets.d1
-	;GuiControl,, % hDNS2, % Presets.d2
+	;GuiControl,, % hDNSServer1, % Presets.d1
+	;GuiControl,, % hDNSServer2, % Presets.d2
 	
 	return
 }
@@ -50,89 +52,42 @@ ScriptDDL:
 {
 	return
 }
-
-GW_Label:
-{
-	GuiControlGet, Gateway
-	If (ValidIP(Gateway)) {
-		StringSplit, Octets, Gateway, .
-		Octets4++
-		If (Octets4 >=256)
-			Octets4 := 0
-		
-		GuiControl,, Useable, %Octets1%.%Octets2%.%Octets3%.%Octets4%
-	}
-	return
-}
-
-UseableIP_Label:
-{
-	return
-}
-
-;===============================================================================
-; Button Events
-;===============================================================================
-
 ButtonPINGGATEWAY:
 {
 	GuiControlGet, Gateway
 	If (ValidIP(Gateway)) {
 		target := "CMD.lnk /C ping /t " . Gateway
-		Run, %target%, %A_WorkingDir%
+		Run, %target%, %A_WorkingDir%		
 	} Else 
 		setStatus("Invalid Gateway IP")
 	return
 }
 	
-ButtonSTATIC:
-{
-	GuiControlGet, AdaptersDDL
-	GuiControlGet, Useable
-	GuiControlGet, SubnetsDDL
-	GuiControlGet, Gateway
-	GuiControlGet, DNS1
-	GuiControlGet, DNS2
-	
-	If (ValidIP(Gateway) && ValidIP(Useable))
+	ButtonSTATIC:
 	{
-		MsgBox,308,Set Static?,Set a Static IP on this PC?`n%Useable%
-		IfMsgBox Yes
-		{
-			args := " /c netsh interface ipv4 set address " AdaptersDDL " static " Useable " " SubnetsDDL " " GateWay " & netsh interface ipv4 set dns " AdaptersDDL " static " DNS1 " & netsh interface ipv4 add dns " AdaptersDDL " addr=" DNS2 " index=2"
-			Run, *RunAs %comspec% %args%,,hide
-		}
+		GuiControlGet, AdaptersDDL
+		GuiControlGet, Useable
+		GuiControlGet, SubnetsDDL
+		GuiControlGet, Gateway
+		GuiControlGet, DNSServer1
+		GuiControlGet, DNSServer2
+		
+		GuiControl,, ScriptText, Adapter= %AdaptersDDL%`nUseable= %Useable%`nSubnet= %SubnetsDDL%`nGateway= %Gateway%`nDNS1= %DNSServer1%`nDNS2=%DNSServer2%
+		;~ run, %comspec% /c netsh interface ipv4 set address name="%SelectedAdapter%" static %Useable% %SubnetMask% %Gateway%,,hide
+		;~ run, %comspec% /c netsh interface ipv4 set dns name="%SelectedAdapter%" static %DNSServer1%,,hide
+		;~ if (UnqDNS2 = "") 
+		;~ {    
+		;~ run, %comspec% /c netsh delete dnsserver "%SelectedAdapter%" index=2,,hide
+		;~ return
+		;~ }
+		;~ Else
+		;~ run, %comspec% /c  netsh interface ip add dns "%SelectedAdapter%" %DNSServer2% index=2,,hide
+		return
 	}
-	return
-}
 	
-ButtonDHCP:
-{
-	GuiControlGet, AdaptersDDL
-	MsgBox,308,Set DHCP?,Set DHCP on this PC?
-	IfMsgBox Yes
+	ButtonDHCP:
 	{
-		args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp"
-		Run, *RunAs %comspec% %args%
-	}
-	return
-}
-	
-	ButtonCreateTunnel:
-	{
-		GuiControlGet, TenDot
-		If (ValidIP(TenDot)) {
-			
-			
-			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
-			loginArg := "-ssh " JumpBox[1].address " -P " JumpBox[1].port " -l " JumpBox[1].user + " -pw " + JumpBox[1].pw
-			tunnelArg := "-L 80:" TenDot ":80 -L 8080:" TenDot ":8080"
-			target := fileName " " loginArg " " tunnelArg
-			;MsgBox % fileName "`n" loginArg "`n" tunnelArg
-			;MsgBox % target
-			Run, %target%, %A_WorkingDir%\KiTTY, Minimize
-		} Else 
-			setStatus("Invalid 10(dot) IP")
+		;run, %ComSpec% /c netsh interface ip set address "%SelectedAdapter%" dhcp,,hide
 		return
 	}
 	
@@ -142,6 +97,26 @@ ButtonDHCP:
 		GuiControl,, ScriptText, Selected Adaptor= %AdaptersDDL%
 		return
 	}
+	
+	GW_Label:
+	{
+		GuiControlGet, Gateway
+		If (ValidIP(Gateway)) {
+			StringSplit, Octets, Gateway, .
+			Octets4++
+			If (Octets4 >=256)
+				Octets4 := 0
+			
+			GuiControl,, Useable, %Octets1%.%Octets2%.%Octets3%.%Octets4%
+		}
+		return
+	}
+	
+	UseableIP_Label:
+	{
+		return
+	}
+	
 	
 	;===============================================================================
 	; Functions
@@ -161,17 +136,12 @@ ButtonDHCP:
 		Gui, 9:Add, Picture,, %A_WorkingDir%\images\splash_400x127.png
 		Gui, 9:Show
 		
-		Sleep, 1000
+		Sleep, 500
 		Gui,  9:Destroy
 		
-		;Presets := {"d1": "24.97.208.121", "d2": "24.97.208.122", "rip": "auth#rip", "host": "SPECTRUM"}
 		Presets := {"d1": "8.8.8.8", "d2": "8.8.4.4", "rip": "auth#rip", "host": "SPECTRUM"}
+		;Presets := {"d1": "24.97.208.121", "d2": "24.97.208.122", "rip": "auth#rip", "host": "SPECTRUM"}
 		ReplaceValue := {"NET": "[NETWORK]", "GW": "[GATEWAY]", "USE": "[USEABLE]", "SUB": "[SUBNET]", "D1": "[DNS1]", "D2": "[DNS2]", "RIP": "[RIPKEY]", "HOST": "[HOSTNAME]"}
-		
-		JumpBox := []
-		JumpBox[1] := {"name": "NorthEast 1", "address": "24.24.43.132", "port": "22", "user": "bctechcpe", "pw": "T3chBCcp3"}
-		JumpBox[2] := {"name": "NorthEast 2", "address": "24.24.43.133", "port": "22", "user": "bctechcpe", "pw": "T3chBCcp3"}
-		JumpBox[3] := {"name": "Test Box", "address": "192.168.1.202", "port": "22", "user": "technician", "pw": "technician"}
 		
 		If (FileExist(A_Temp "\NetInfo.txt")) {
 			FileDelete, %A_Temp%\NetInfo.txt
@@ -231,8 +201,8 @@ ButtonDHCP:
 		Gui, Add, Text, x%xCol_3% y%yTop_Row2_Text% w140 h20, DNS 2:
 		Gui, Font, S11 CDefault Normal, Courier
 		Gui, Add, Edit, x%xCol_1% y%yTop_Row2_Obj% w160 HWNDhRipKey +ReadOnly +Center, % Presets.rip
-		Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNS1 vDNS1 +ReadOnly +Center, % Presets.d1
-		Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 HWNDhDNS2 vDNS2 +ReadOnly +Center, % Presets.d2
+		Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNSServer1 vDNSServer1 +ReadOnly +Center, % Presets.d1
+		Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 HWNDhDNSServer2 vDNSServer2 +ReadOnly +Center, % Presets.d2
 		
 		; Top Button Row
 		Gui, Font, S10 CDefault Bold, Arial
@@ -246,7 +216,7 @@ ButtonDHCP:
 		
 		; Mid Row1
 		Gui, Font, S9 CDefault Normal, Arial
-		Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h20, 10(dot) IP:
+		Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h20 , (10 dot) IP:
 		Gui, Add, Text, x%xCol_2% y%yMid_Row1_Text% w160 h20 , Modem Model:
 		Gui, Add, Text, x%xCol_3% y%yMid_Row1_Text% w160 h20 , Script:
 		Gui, Font, S11 CDefault Normal, Courier
@@ -276,8 +246,8 @@ ButtonDHCP:
 		Gui, Font, c666666
 		GuiControl, Font, % hStatus
 		
-		Gui, Show, x2000 y40 w540, SMB ToolBox
-		;Gui, Show, w540, SMB ToolBox
+		;Gui, Show, x2000 y40 w540, SMB ToolBox
+		Gui, Show, w540, SMB ToolBox
 		
 		; Get Adaptors
 		GuiControl,, % hStatus, Getting Adapters...
@@ -340,5 +310,5 @@ ButtonDHCP:
 	; Hotkeys
 	;===============================================================================
 	
-	
+		
 	;===============================================================================
