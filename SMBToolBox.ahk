@@ -23,14 +23,14 @@ Return 					; End automatic execution
 
 ReadyStatus:
 {
-	SetTimer, ReadyStatus, off
+	SetTimer,, off
 	GuiControl,, % hStatus, Ready
 	Return
 }
 
 ClearProgress:
 {
-	SetTimer, ClearProgress, Off
+	SetTimer,, Off
 	GuiControl,,LoopProgress, 0
 	Return
 }
@@ -71,6 +71,33 @@ GW_Label:
 	Return
 }
 
+ChangeDefaults:
+{
+	width := 300
+	;WinGetPos, X, Y,,, A
+	WinGetActiveStats, Title, W, H, X, Y
+	X := X+(W/2)-(width/2)
+	Y := Y+100
+	
+	;Gui, +Disabled
+	Gui, 2:+AlwaysOnTop +LastFound -Resize +HWNDh2Gui
+	Gui, 2:+Owner
+	Gui, 2:Margin, 10, 10
+	Gui, 2:Font, S20 CDefault Bold, Courier
+	
+	Gui, 2:Add, Text, x10 w280 +Center, TODO: Add Settings Menus
+	Gui, 2:Show, w%width% h100 x%X% y%Y%, Default Settings
+	
+	
+	Return
+}
+
+NetInfo:
+{
+	Run, rundll32.exe shell32.dll`,Control_RunDLL ncpa.cpl
+	Return
+}
+
 UseableIP_Label:
 {
 	Return
@@ -103,16 +130,20 @@ ButtonSTATIC:
 	If (ValidIP(Gateway) && ValidIP(Useable))
 	{
 		GuiControl,, % hStatus, Setting local static...
+		Gui +OwnDialogs
 		MsgBox,308,Set Static?,Set a Static IP on this PC?`n%Useable%
 		IfMsgBox Yes
 		{
+			;~ Powershell works well for setting static
+			
 			;cmdArgs := " /c netsh interface ipv4 set address " AdaptersDDL " static " Useable " " SubnetsDDL " " GateWay " & netsh interface ipv4 set dns " AdaptersDDL " static " DNS1 " & netsh interface ipv4 add dns " AdaptersDDL " addr=" DNS2 " index=2"
 			;Run, *RunAs %comspec% %cmdArgs%,,hide
+			
 			CIDR := GetCIDR(SubnetsDDL)
 			psArgs := "New-NetIPAddress -InterfaceIndex " AdapterIndex " -IPAddress " Useable " -PrefixLength " CIDR " -DefaultGateway " Gateway " `; Set-DnsClientServerAddress -InterfaceIndex " AdapterIndex " -ServerAddresses """ DNS1 " , " DNS2 """"
 			Run, *RunAS PowerShell.exe -Command %psArgs%,, Hide
 			
-			iCount := 15
+			iCount := 10
 			Loop, %iCount% 
 			{
 				Position := 100/iCount * A_Index
@@ -132,13 +163,16 @@ ButtonDHCP:
 	MsgBox,308,Set DHCP?,Set DHCP on this PC?
 	IfMsgBox Yes
 	{
+		;~ WMI seems to work best for DHCP
 		GuiControl,, % hStatus, Setting local DHCP...
-		psArgs := "Set-NetIPInterface -InterfaceAlias" AdaptersDDL " -Dhcp Enabled"
-		Run, *RunAs PowerShell.exe -Command Set-DnsClientServerAddress -InterfaceIndex %AdapterIndex% -ResetServerAddresses `; Set-NetIPInterface -InterfaceAlias %AdaptersDDL% -Dhcp Enabled,,Hide
-		
+		wmiDHCPArgs := "$adapter = Get-WmiObject win32_NetworkAdapterConfiguration -Filter 'IPEnabled = true' `; $adapter.SetDNSServerSearchOrder() `; $adapter.EnableDHCP()"
+		Run, *RunAs PowerShell.exe -Command %wmiDHCPArgs%,, Hide
+		;psArgs := "Set-NetIPInterface -InterfaceAlias" AdaptersDDL " -Dhcp Enabled"
+		;Run, *RunAs PowerShell.exe -Command Set-DnsClientServerAddress -InterfaceIndex %AdapterIndex% -ResetServerAddresses `; Set-NetIPInterface -InterfaceAlias %AdaptersDDL% -Dhcp Enabled,,Hide
 		;args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp"
 		;Run, *RunAs %comspec% %args%
-		iCount := 15
+		
+		iCount := 10
 		Loop, %iCount% 
 		{
 			Position := 100/iCount * A_Index
@@ -246,6 +280,8 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_1% y%yTop_Row0_Text% w140 h20, Select Adapter:
 	Gui, Font, S10 CDefault Normal, Arial
 	Gui, Add, DropDownList, x%xCol_1% y%yTop_Row0_Obj% w220 vAdaptersDDL gAdaptersDDL
+	Gui, Add, Picture, x+20 y25 w30 h30 Icon89 gNetInfo , C:\WINDOWS\SYSTEM32\SHELL32.dll
+	Gui, Add, Picture, x495 yp w30 h30 Icon36 gChangeDefaults, C:\WINDOWS\SYSTEM32\SHELL32.dll
 	
 	Gui, Font, S8 CDefault Normal, Courier
 	Gui, Add, Text, x%xCol_3% y10 w160 h15 +Right vLocalIP 
@@ -377,37 +413,21 @@ GetIPByAdaptor(adaptorName) {
 	objWMIService := ComObjGet("winmgmts:{impersonationLevel = impersonate}!\\.\root\cimv2")
 	colItems := objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapter WHERE NetConnectionID = '" adaptorName "'")._NewEnum, colItems[objItem]
 	colItems := objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE InterfaceIndex = '" objItem.InterfaceIndex "'")._NewEnum, colItems[objItem]
+	
 	Return objItem.IPAddress[0]
 }
 
 GetCIDR(sub){
 	If (ValidIP(sub)) {
 		StringSplit, Octets, sub, .
-		
-		If (Octets4 = 255)
-			Return 32
-		If (Octets4 = 254)
-			Return 31
-		If (Octets4 = 252)
-			Return 30
-		If (Octets4 = 248)
-			Return 29
-		If (Octets4 = 240)
-			Return 28
-		If (Octets4 = 224)
-			Return 27
-		If (Octets4 = 192)
-			Return 26
-		If (Octets4 = 128)
-			Return 25
-		If (Octets4 = 0)
-			Return 24
+		arrSubnet := {0:24, 128:25, 192:26, 224:27, 240:28, 248:29, 252:30, 254:31, 255:32}
+		Return arrSubnet[Octets4]
 	}
 	Return 0
 }
 
 GetAdapterIndex(ad){
-
+	
 	RunWait, PowerShell.exe Get-NetAdapter -Name %ad% | Format-List -Property IfIndex | Out-File -FilePath %A_Temp%\NetInfo.txt -Width 300,, Hide
 	Loop, read, %A_Temp%\NetInfo.txt
 	{
@@ -418,11 +438,11 @@ GetAdapterIndex(ad){
 			Break
 		}	
 	}
-
+	
 	If (FileExist(A_Temp "\NetInfo.txt")) {
 		FileDelete, %A_Temp%\NetInfo.txt
 	}
-
+	
 	Return, iPos
 }
 
