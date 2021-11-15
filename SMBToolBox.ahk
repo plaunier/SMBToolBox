@@ -46,11 +46,60 @@ AdaptersDDL:
 	
 ModemsDDL:
 {
+	GuiControlGet, ModemsDDL
+	scriptNames := ""
+	scriptFolder := A_WorkingDir "\Scripts\" ModemsDDL "\"
+	Loop, Files, % scriptFolder "\*", F
+	{
+		SplitPath, A_LoopFileName, name1, dir1, ext1, name_no_ext1, drive1
+		scriptNames .= "|" name_no_ext1
+	}
+	
+	scriptNames .= "||"
+	
+	ScriptDDL := ""
+	GuiControl,, ScriptDDL, % scriptNames
+	GuiControl, -Disabled, scriptDDL
+	GuiControl, -Disabled, Connect
+	
+	Gosub, ScriptDDL
 	Return
 }
 
 ScriptDDL:
 {
+	GuiControlGet, ModemsDDL
+	GuiControlGet, ScriptDDL
+	GuiControlGet, Gateway
+	GuiControlGet, Useable
+	GuiControlGet, SubnetsDDL
+	GuiControlGet, DNS1
+	GuiControlGet, DNS2
+	ripkey := Presets.rip
+	host := Presets.host
+	
+	file := A_WorkingDir "\Scripts\" ModemsDDL "\" ScriptDDL ".txt"
+	FileRead, script, % file
+	If (ValidIP(Gateway))
+	{
+		StringSplit, Octets, Gateway, .
+		Octets4--
+		If (Octets4 < 0 )
+			Octets4 := 255	
+		Network := Octets1 "." Octets2 "." Octets3 "." Octets4
+		script := StrReplace(script, "[GATEWAY]", Gateway)
+		script := StrReplace(script, "[NETWORK]", Network)
+	}
+	
+	If (ValidIP(Useable))
+		script := StrReplace(script, "[USEABLE]", Useable)
+	script := StrReplace(script, "[SUBNET]", SubnetsDDL)
+	script := StrReplace(script, "[DNS1]", DNS1)
+	script := StrReplace(script, "[DNS2]", DNS2)
+	script := StrReplace(script, "[RIPKEY]", ripkey)
+	script := StrReplace(script, "[HOST_NAME]", host)
+	
+	GuiControl,, ScriptText, % script
 	Return
 }
 
@@ -79,7 +128,7 @@ ChangeDefaults:
 	X := X+(W/2)-(width/2)
 	Y := Y+100
 	
-	;Gui, +Disabled
+	Gui, 1:+Disabled
 	Gui, 2:+AlwaysOnTop +LastFound -Resize +HWNDh2Gui
 	Gui, 2:+Owner
 	Gui, 2:Margin, 10, 10
@@ -90,6 +139,13 @@ ChangeDefaults:
 	
 	
 	Return
+}
+
+2GuiClose:
+{
+	Gui, 1:-Disabled
+	Gui, 2:Destroy
+	return	
 }
 
 NetInfo:
@@ -129,11 +185,11 @@ ButtonSTATIC:
 	
 	If (ValidIP(Gateway) && ValidIP(Useable))
 	{
-		GuiControl,, % hStatus, Setting local static...
 		Gui +OwnDialogs
-		MsgBox,308,Set Static?,Set a Static IP on this PC?`n%Useable%
+		MsgBox,308,Set Static?,Set a Static IP on this PC?`n`nIP= %Useable%
 		IfMsgBox Yes
 		{
+			GuiControl,, % hStatus, Setting local static...
 			;~ Powershell works well for setting static
 			
 			;cmdArgs := " /c netsh interface ipv4 set address " AdaptersDDL " static " Useable " " SubnetsDDL " " GateWay " & netsh interface ipv4 set dns " AdaptersDDL " static " DNS1 " & netsh interface ipv4 add dns " AdaptersDDL " addr=" DNS2 " index=2"
@@ -155,11 +211,14 @@ ButtonSTATIC:
 			;GuiControl,, LocalIP, % GetIPByAdaptor(AdaptersDDL)
 		}
 	}
+	Else
+		setStatus("IP is not Valid")
 	Return
 }
 
 ButtonDHCP:
 {
+	Gui +OwnDialogs
 	MsgBox,308,Set DHCP?,Set DHCP on this PC?
 	IfMsgBox Yes
 	{
@@ -190,6 +249,7 @@ ButtonCreateTunnel:
 {
 	GuiControlGet, TenDot
 	If (ValidIP(TenDot)) {
+		GuiControl,, % hStatus, Setting up HTTP tunnel...
 		Process, Close, %tunnelPID%
 		fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
 		loginArg := "-ssh " JumpBox[1].address " -P " JumpBox[1].port " -l " JumpBox[1].user " -pw " JumpBox[1].pw
@@ -197,18 +257,56 @@ ButtonCreateTunnel:
 		target := fileName " " loginArg " " tunnelArg
 		
 		Run, %target%, %A_WorkingDir%\KiTTY, Minimize Hide, tunnelPID
+		
+		iCount := 10
+		Loop, %iCount% 
+		{
+			Position := 100/iCount * A_Index
+			GuiControl,, LoopProgress, % Position
+			Sleep, 100
+		}
+		SetTimer, ClearProgress, -500
+		SetTimer, ReadyStatus, -500
 	} Else 
 		setStatus("Invalid 10(dot) IP")
 	Return
 }
 
+ButtonConnecttoModem:
+{
+	If (ValidIP(TenDot))
+	{
+		Gui +OwnDialogs
+		MsgBox,308,Set DHCP?,Set DHCP on this PC?
+		IfMsgBox Yes
+		{
+			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
+			loginArg := "-ssh " JumpBox[1].address " -P " JumpBox[1].port " -l " JumpBox[1].user " -pw " JumpBox[1].pw
+			target := fileName " " loginArg 
+		
+			Run, %target%, %A_WorkingDir%\KiTTY,, telnetPID
+		}
+		
+	}
+	Else
+		setStatus("Invalid 10(dot) IP")
+	
+	Return
+}
 ButtonRefresh: 
 {
-	GuiControlGet, AdaptersDDL
-	GuiControl,, ScriptText, Selected Adaptor= %AdaptersDDL%
+	Gosub, ScriptDDL
+	
 	Return
 }
 
+ButtonCopy:
+{
+	GuiControlGet, ScriptText
+	Clipboard := ScriptText
+	setStatus("Copied to Clipboard")
+	Return
+}
 ;===============================================================================
 ; Functions
 ;===============================================================================
@@ -232,7 +330,7 @@ OnLoad() {
 	
 	;Presets := {"d1": "24.97.208.121", "d2": "24.97.208.122", "rip": "auth#rip", "host": "SPECTRUM"}
 	Presets := {"d1": "8.8.8.8", "d2": "8.8.4.4", "rip": "auth#rip", "host": "SPECTRUM"}
-	ReplaceValue := {"NET": "[NETWORK]", "GW": "[GATEWAY]", "USE": "[USEABLE]", "SUB": "[SUBNET]", "D1": "[DNS1]", "D2": "[DNS2]", "RIP": "[RIPKEY]", "HOST": "[HOSTNAME]"}
+	ReplaceValue := {"net": "[NETWORK]", "gw": "[GATEWAY]", "use": "[USEABLE]", "sub": "[SUBNET]", "d1": "[DNS1]", "d2": "[DNS2]", "rip": "[RIPKEY]", "host": "[HOSTNAME]"}
 	
 	JumpBox := []
 	JumpBox[1] := {"name": "NorthEast 1", "address": "24.24.43.132", "port": "22", "user": "bctechcpe", "pw": "T3chBCcp3"}
@@ -280,8 +378,9 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_1% y%yTop_Row0_Text% w140 h20, Select Adapter:
 	Gui, Font, S10 CDefault Normal, Arial
 	Gui, Add, DropDownList, x%xCol_1% y%yTop_Row0_Obj% w220 vAdaptersDDL gAdaptersDDL
-	Gui, Add, Picture, x+20 y25 w30 h30 Icon89 gNetInfo , C:\WINDOWS\SYSTEM32\SHELL32.dll
-	Gui, Add, Picture, x495 yp w30 h30 Icon36 gChangeDefaults, C:\WINDOWS\SYSTEM32\SHELL32.dll
+	Gui, Add, Picture, x500 y25 w25 h25 Icon36 gChangeDefaults, C:\WINDOWS\SYSTEM32\SHELL32.dll
+	
+	;Gui, Add, Picture, x+20 y25 w30 h30 Icon89 gNetInfo , C:\WINDOWS\SYSTEM32\SHELL32.dll
 	
 	Gui, Font, S8 CDefault Normal, Courier
 	Gui, Add, Text, x%xCol_3% y10 w160 h15 +Right vLocalIP 
@@ -312,6 +411,7 @@ GuiCreate() {
 	Gui, Add, Button, x%xButtonCol_1% y%yTop_Row3_Button% w140 h25, PING GATEWAY
 	Gui, Add, Button, x250 y%yTop_Row3_Button% w100 h25, STATIC
 	Gui, Add, Button, x%xCol_3% y%yTop_Row3_Button% w100 h25, DHCP
+	Gui, Add, Picture, x505 yp w20 h20 Icon89 gNetInfo, C:\WINDOWS\SYSTEM32\SHELL32.dll
 	
 	; Vertical Line
 	Gui,  Add, Text, xm y%ySeperateTop% w520 0x10
@@ -324,14 +424,13 @@ GuiCreate() {
 	Gui, Font, S11 CDefault Normal, Courier
 	Gui, Add, Edit, x%xCol_1% y%yMid_Row1_Obj% w160 vTenDot +Center	
 	; Gui, Font, S11 CDefault Normal, Arial
-	Gui, Add, DropDownList, x%xCol_2% y%yMid_Row1_Obj% w160 vModemsDDL gModemsDDL 
-	Gui, Add, DropDownList, x%xCol_3% y%yMid_Row1_Obj% w160 vScriptDDL gScriptDDL +ReadOnly
+	Gui, Add, DropDownList, x%xCol_2% y%yMid_Row1_Obj% w160 vModemsDDL gModemsDDL +Disabled
+	Gui, Add, DropDownList, x%xCol_3% y%yMid_Row1_Obj% w160 vScriptDDL gScriptDDL +Disabled, <-- Select Modem||
 	
 	Gui, Font, S10 CDefault Bold, Arial
 	xButtonCol_1 := xCol_1 + 20
 	Gui, Add, Button, x%xButtonCol_1% y+25 w120 h25, Create Tunnel
-	Gui, Add, Button, x%xCol_2% yp w340 h25, Connect to Modem
-	;Gui, Add, Button, x%xCol_3% y%yTop_Row3_Button% w100 h25, DHCP
+	Gui, Add, Button, x%xCol_2% yp w340 h25 vConnect +Disabled, Connect to Modem
 	
 	; Vertical Line
 	Gui,  Add, Text, xm y+15 w520 0x10
@@ -339,6 +438,7 @@ GuiCreate() {
 	; Edit box for Script
 	Gui, Font, S8 CDefault Bold, Arial
 	Gui, Add, Button, x%xCol_1% y+1 w80 h20, Refresh
+	Gui, Add, Button, x+10 yp w60 h20, Copy
 	Gui, Font, S11 CDefault Normal, Courier
 	; Gui, Font, S11 CDefault Normal, Arial
 	Gui, Add, Edit, x%xCol_1% y+5 h200 w520 HWNDhScriptText vScriptText vscroll
@@ -350,8 +450,8 @@ GuiCreate() {
 	Gui, Font, c666666
 	GuiControl, Font, % hStatus
 	
-	Gui, Show, x2000 y40 w540, SMB ToolBox
-	;Gui, Show, w540, SMB ToolBox
+	;Gui, Show, x2000 y40 w540, SMB ToolBox
+	Gui, Show, w540, SMB ToolBox
 	
 	; Get Adapters
 	GuiControl,, % hStatus, Getting Adapters...
@@ -387,17 +487,29 @@ GuiCreate() {
 		FileDelete, %A_Temp%\NetInfo.txt
 	}
 	
-	SetTimer, ClearProgress, -1000
-	GuiControl,,LoopProgress, 0
 	
-	;Sort, Adapters, UD|
 	GuiControl,, AdaptersDDL, % Adapters
 	GuiControl, -Disabled, AdaptersDDL
 	GuiControlGet, AdaptersDDL
 	AdapterIndex := GetAdapterIndex(AdaptersDDL)
 	;GuiControl,, LocalIP, % GetIPByAdaptor(AdaptersDDL)
-	SetTimer, ReadyStatus, -100
 	
+	; Get Modem Names
+	GuiControl, +Disabled, ModemsDDL
+	
+	modemNames := ""
+	scriptFolder := A_WorkingDir "\Scripts"
+	Loop, Files, % scriptFolder "\*", D
+	{
+		SplitPath, A_LoopFileName, name1, dir1, ext1, name_no_ext1, drive1 
+		modemNames .= name1 "|"
+	}
+	GuiControl,, ModemsDDL, % modemNames
+	GuiControlGet, AdaptersDDL
+	GuiControl, -Disabled, ModemsDDL
+	
+	SetTimer, ClearProgress, -100
+	SetTimer, ReadyStatus, -100
 	Return
 }
 
