@@ -250,9 +250,10 @@ ButtonCreateTunnel:
 	GuiControlGet, TenDot
 	If (ValidIP(TenDot)) {
 		GuiControl,, % hStatus, Setting up HTTP tunnel...
+		jb := 1
 		Process, Close, %tunnelPID%
 		fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
-		loginArg := "-ssh " JumpBox[1].address " -P " JumpBox[1].port " -l " JumpBox[1].user " -pw " JumpBox[1].pw
+		loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
 		tunnelArg := "-L 80:" TenDot ":80 -L 8080:" TenDot ":8080"
 		target := fileName " " loginArg " " tunnelArg
 		
@@ -274,23 +275,35 @@ ButtonCreateTunnel:
 
 ButtonConnecttoModem:
 {
-	If (ValidIP(TenDot))
+	GuiControlGet, TenDot
+	jb := 3
+	Gui +OwnDialogs
+	MsgBox,4,Connect to Modem, Establish SSH connection to Jumbox?
+	IfMsgBox, Yes
 	{
-		Gui +OwnDialogs
-		MsgBox,308,Set DHCP?,Set DHCP on this PC?
-		IfMsgBox Yes
+		;connect to Jumpbox over ssh
+		fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
+		loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
+		target := fileName " " loginArg 
+		Run, %target%, %A_WorkingDir%\KiTTY,, sshPID
+		
+		If (ValidIP(TenDot))
 		{
-			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
-			loginArg := "-ssh " JumpBox[1].address " -P " JumpBox[1].port " -l " JumpBox[1].user " -pw " JumpBox[1].pw
-			target := fileName " " loginArg 
-		
-			Run, %target%, %A_WorkingDir%\KiTTY,, telnetPID
+			; send telnet command to Jumpbox which will connect to the modem
+			
+			MsgBox,0,Telnet, Press Ok to Telnet to modem.
+			IfMsgBox, OK
+			{
+				sendText := "telnet " TenDot
+				WinActivate, ahk_pid %sshPID%
+				Sleep, 150
+				Send %sendText%
+				Send {Enter}
+			}
 		}
-		
+		Else
+			setStatus("Invalid 10(dot) IP")
 	}
-	Else
-		setStatus("Invalid 10(dot) IP")
-	
 	Return
 }
 ButtonRefresh: 
@@ -345,7 +358,9 @@ OnLoad() {
 
 OnUnload(ExitReason, ExitCode) {
 	Global ; Assume-global mode
+	
 	Process, Close, %tunnelPID%
+	Process, Close, %sshPID%
 }
 
 GuiCreate() {
@@ -369,7 +384,8 @@ GuiCreate() {
 	yMid_Row1_Text := ySeperateTop + 20
 	yMid_Row1_Obj := yMid_Row1_Text + 17
 	
-	Gui, +AlwaysOnTop +LastFound -Resize +HWNDhGui
+	;Gui, +AlwaysOnTop +LastFound -Resize +HWNDhGui
+	Gui, +LastFound -Resize +HWNDhGui
 	Gui, Margin, 10, 10
 	Gui, Font, S11 CDefault Normal, Courier
 	
@@ -580,5 +596,11 @@ setStatus(msg) {
 ; Hotkeys
 ;===============================================================================
 
+!F3::
+WinActivate, ahk_pid %sshPID%
+Sleep, 500
+Send, 123
+
+Return
 
 ;===============================================================================
