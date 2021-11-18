@@ -250,7 +250,7 @@ ButtonCreateTunnel:
 	GuiControlGet, TenDot
 	If (ValidIP(TenDot)) {
 		GuiControl,, % hStatus, Setting up HTTP tunnel...
-		jb := 1
+		jb := 
 		Process, Close, %tunnelPID%
 		fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
 		loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
@@ -276,19 +276,20 @@ ButtonCreateTunnel:
 ButtonConnecttoModem:
 {
 	GuiControlGet, TenDot
-	jb := 3
-	Gui +OwnDialogs
-	MsgBox,4,Connect to Modem, Establish SSH connection to Jumbox?
-	IfMsgBox, Yes
+	If (ValidIP(TenDot))
 	{
-		;connect to Jumpbox over ssh
-		fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
-		loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
-		target := fileName " " loginArg 
-		Run, %target%, %A_WorkingDir%\KiTTY,, sshPID
-		
-		If (ValidIP(TenDot))
+		jb := 3
+		Gui +OwnDialogs
+		MsgBox,4,Connect to Modem, Establish SSH connection to Jumbox?
+		IfMsgBox, Yes
 		{
+			;connect to Jumpbox over ssh
+			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
+			loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
+			target := fileName " " loginArg 
+			Run, %target%, %A_WorkingDir%\KiTTY,, sshPID
+			
+			
 			; send telnet command to Jumpbox which will connect to the modem
 			
 			MsgBox,0,Telnet, Press Ok to Telnet to modem.
@@ -301,9 +302,9 @@ ButtonConnecttoModem:
 				Send {Enter}
 			}
 		}
-		Else
-			setStatus("Invalid 10(dot) IP")
 	}
+	Else
+		setStatus("Invalid 10(dot) IP")
 	Return
 }
 ButtonRefresh: 
@@ -591,15 +592,20 @@ setStatus(msg) {
 	SetTimer, ReadyStatus, -1500
 }
 
-
+ProcessExist(Name){
+	Process, Exist, %Name%
+	Return Errorlevel
+}
 ;===============================================================================
 ; Hotkeys
 ;===============================================================================
 
 !F3::
-WinActivate, ahk_pid %sshPID%
-Sleep, 500
-Send, 123
+If (ProcessExist(%sshPID%))
+{
+	MsgBox, I see it
+}
+	
 
 Return
 
