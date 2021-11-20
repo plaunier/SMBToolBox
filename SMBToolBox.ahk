@@ -21,6 +21,12 @@ Return 					; End automatic execution
 ; Labels
 ;===============================================================================
 
+RemoveToolTip:
+{
+	SetTimer,, off
+	ToolTip
+	Return
+}
 ReadyStatus:
 {
 	SetTimer,, off
@@ -116,28 +122,12 @@ GW_Label:
 		
 		GuiControl,, Useable, %Octets1%.%Octets2%.%Octets3%.%Octets4%
 	}
-	
 	Return
 }
 
 ChangeDefaults:
 {
-	width := 300
-	;WinGetPos, X, Y,,, A
-	WinGetActiveStats, Title, W, H, X, Y
-	X := X+(W/2)-(width/2)
-	Y := Y+100
-	
-	Gui, 1:+Disabled
-	Gui, 2:+AlwaysOnTop +LastFound -Resize +HWNDh2Gui
-	Gui, 2:+Owner
-	Gui, 2:Margin, 10, 10
-	Gui, 2:Font, S20 CDefault Bold, Courier
-	
-	Gui, 2:Add, Text, x10 w280 +Center, TODO: Add Settings Menus
-	Gui, 2:Show, w%width% h100 x%X% y%Y%, Default Settings
-	
-	
+	GuiSettings()
 	Return
 }
 
@@ -145,7 +135,7 @@ ChangeDefaults:
 {
 	Gui, 1:-Disabled
 	Gui, 2:Destroy
-	return	
+	Return	
 }
 
 NetInfo:
@@ -159,6 +149,14 @@ UseableIP_Label:
 	Return
 }
 
+WinMoveMsgBox:
+{
+	If WinExist(WinName)
+		SetTimer, WinMoveMsgBox, OFF
+	WinMove, %WinName%, , %WinX%, %WinY%
+	Return
+}
+
 ;===============================================================================
 ; Button Events
 ;===============================================================================
@@ -169,8 +167,10 @@ ButtonPINGGATEWAY:
 	If (ValidIP(Gateway)) {
 		target := "CMD.lnk /C ping /t " . Gateway
 		Run, %target%, %A_WorkingDir%
-	} Else 
+	} Else {
 		setStatus("Invalid Gateway IP")
+		tToolTip("Invalid Gateway IP")
+	}
 	Return
 }
 
@@ -185,8 +185,15 @@ ButtonSTATIC:
 	
 	If (ValidIP(Gateway) && ValidIP(Useable))
 	{
+		width := 220
+		;WinGetPos, X, Y,,, A
+		WinGetActiveStats, Title, W, H, X, Y
+		WinX := X+(W/2)-(width/2)
+		WinY := Y+100
+		WinName := "Set Static?"
+		SetTimer, WinMoveMsgBox, 20
 		Gui +OwnDialogs
-		MsgBox,308,Set Static?,Set a Static IP on this PC?`n`nIP= %Useable%
+		MsgBox, 308, %WinName%, Set a Static IP on this PC?`n`nIP= %Useable%
 		IfMsgBox Yes
 		{
 			GuiControl,, % hStatus, Setting local static...
@@ -211,17 +218,27 @@ ButtonSTATIC:
 			;GuiControl,, LocalIP, % GetIPByAdaptor(AdaptersDDL)
 		}
 	}
-	Else
+	Else {
 		setStatus("IP is not Valid")
+		tToolTip("IP is not Valid")
+	}
 	Return
 }
 
 ButtonDHCP:
 {
+	width := 220
+	;WinGetPos, X, Y,,, A
+	WinGetActiveStats, Title, W, H, X, Y
+	WinX := X+(W/2)-(width/2)
+	WinY := Y+100
+	WinName := "Set DHCP?"
+	SetTimer, WinMoveMsgBox, 20
 	Gui +OwnDialogs
-	MsgBox,308,Set DHCP?,Set DHCP on this PC?
+	MsgBox, 308, %WinName%, Set DHCP on this PC?
 	IfMsgBox Yes
 	{
+		
 		;~ WMI seems to work best for DHCP
 		GuiControl,, % hStatus, Setting local DHCP...
 		wmiDHCPArgs := "$adapter = Get-WmiObject win32_NetworkAdapterConfiguration -Filter 'IPEnabled = true' `; $adapter.SetDNSServerSearchOrder() `; $adapter.EnableDHCP()"
@@ -249,38 +266,58 @@ ButtonCreateTunnel:
 {
 	GuiControlGet, TenDot
 	If (ValidIP(TenDot)) {
-		GuiControl,, % hStatus, Setting up HTTP tunnel...
-		jb := 
-		Process, Close, %tunnelPID%
-		fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
-		loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
-		tunnelArg := "-L 80:" TenDot ":80 -L 8080:" TenDot ":8080"
-		target := fileName " " loginArg " " tunnelArg
-		
-		Run, %target%, %A_WorkingDir%\KiTTY, Minimize Hide, tunnelPID
-		
-		iCount := 10
-		Loop, %iCount% 
-		{
-			Position := 100/iCount * A_Index
-			GuiControl,, LoopProgress, % Position
-			Sleep, 100
+		width := 220
+		;WinGetPos, X, Y,,, A
+		WinGetActiveStats, Title, W, H, X, Y
+		WinX := X+(W/2)-(width/2)
+		WinY := Y+100
+		WinName := "Create Tunnel?"
+		SetTimer, WinMoveMsgBox, 20
+		Gui +OwnDialogs
+		MsgBox, 308, %WinName%, Create tunnel to:`n     %TenDot%
+		IfMsgBox Yes
+		{		
+			GuiControl,, % hStatus, Setting up HTTP tunnel...
+			jb := 
+			Process, Close, %tunnelPID%
+			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
+			loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
+			tunnelArg := "-L 80:" TenDot ":80 -L 8080:" TenDot ":8080"
+			target := fileName " " loginArg " " tunnelArg
+			
+			Run, %target%, %A_WorkingDir%\KiTTY, Minimize Hide, tunnelPID
+			
+			iCount := 10
+			Loop, %iCount% 
+			{
+				Position := 100/iCount * A_Index
+				GuiControl,, LoopProgress, % Position
+				Sleep, 100
+			}
+			SetTimer, ClearProgress, -500
+			SetTimer, ReadyStatus, -500
 		}
-		SetTimer, ClearProgress, -500
-		SetTimer, ReadyStatus, -500
-	} Else 
+	} Else {
 		setStatus("Invalid 10(dot) IP")
+		tToolTip("Invalid 10(dot) IP")
+	}
 	Return
 }
 
 ButtonConnecttoModem:
 {
 	GuiControlGet, TenDot
-	If (ValidIP(TenDot))
-	{
+	If (ValidIP(TenDot)) {
 		jb := 3
+		width := 220
+		;WinGetPos, X, Y,,, A
+		WinGetActiveStats, Title, W, H, X, Y
+		WinX := X+(W/2)-(width/2)
+		WinY := Y+100
+		WinName := "Connect to Modem"
+		SetTimer, WinMoveMsgBox, 20
 		Gui +OwnDialogs
-		MsgBox,4,Connect to Modem, Establish SSH connection to Jumbox?
+		MsgBox, 4, %WinName%, Establish SSH connection to Jumbox?
 		IfMsgBox, Yes
 		{
 			;connect to Jumpbox over ssh
@@ -288,7 +325,6 @@ ButtonConnecttoModem:
 			loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
 			target := fileName " " loginArg 
 			Run, %target%, %A_WorkingDir%\KiTTY,, sshPID
-			
 			
 			; send telnet command to Jumpbox which will connect to the modem
 			
@@ -303,8 +339,11 @@ ButtonConnecttoModem:
 			}
 		}
 	}
-	Else
+	Else {
 		setStatus("Invalid 10(dot) IP")
+		Gui +OwnDialogs
+		tToolTip("Invalid 10(dot) IP")
+	}
 	Return
 }
 ButtonRefresh: 
@@ -530,6 +569,25 @@ GuiCreate() {
 	Return
 }
 
+GuiSettings()
+{
+	width := 300
+	;WinGetPos, X, Y,,, A
+	WinGetActiveStats, Title, W, H, X, Y
+	X := X+(W/2)-(width/2)
+	Y := Y+100
+	
+	Gui, 1:+Disabled
+	Gui, 2:+AlwaysOnTop +LastFound -Resize +HWNDh2Gui
+	Gui, 2:+Owner
+	Gui, 2:Margin, 10, 10
+	Gui, 2:Font, S20 CDefault Bold, Courier
+	
+	Gui, 2:Add, Text, x10 w280 +Center, TODO: Add Settings Menus
+	Gui, 2:Show, w%width% h100 x%X% y%Y%, Default Settings
+	
+	Return
+}
 GuiClose(GuiHwnd) {
 	ExitApp ; Terminate the script unconditionally
 }
@@ -586,6 +644,13 @@ ValidIP(a) {
 	Return, e = 4 AND c = 4
 }
 
+tToolTip(tip) {
+	ToolTip, %tip%
+	time := -2000
+	SetTimer, RemoveToolTip, %time%
+	return
+}
+
 setStatus(msg) {
 	global
 	GuiControl,, % hStatus, % msg
@@ -605,7 +670,7 @@ If (ProcessExist(%sshPID%))
 {
 	MsgBox, I see it
 }
-	
+
 
 Return
 
