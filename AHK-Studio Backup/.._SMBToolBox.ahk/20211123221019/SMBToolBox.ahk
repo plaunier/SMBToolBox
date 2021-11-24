@@ -202,7 +202,6 @@ ButtonPINGGATEWAY:
 	} Else {
 		;target := "CMD.lnk /C ping /t " . Gateway
 		;Run, %target%, %A_WorkingDir%\include
-		
 		Run, %A_WorkingDir%\include\PingGUI.ahk %Gateway%
 	}
 	Return

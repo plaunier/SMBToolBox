@@ -201,8 +201,10 @@ ButtonPINGGATEWAY:
 		tToolTip("Invalid Gateway IP")
 	} Else {
 		;target := "CMD.lnk /C ping /t " . Gateway
-		;Run, %target%, %A_WorkingDir%\include
-		
+		;Run, %target%, %A_WorkingDir%
+		;pingTxt := ""
+		;urlPing := Gateway
+		;GuiPing()
 		Run, %A_WorkingDir%\include\PingGUI.ahk %Gateway%
 	}
 	Return

@@ -8,8 +8,7 @@
 ;SetWorkingDir, % A_ScriptDir ; Set the working directory of the script
 SetBatchLines, -1 		; The speed at which the lines of the script are executed
 SendMode, Input 		; The method for sending keystrokes and mouse clicks
-DetectHiddenWindows, On	; The visibility of hidden windows by the script
-SetTitleMatchMode, 2
+;DetectHiddenWindows, On	; The visibility of hidden windows by the script
 ;SetWinDelay, 0 		; The delay to occur after modifying a window
 ;SetControlDelay, 0 	; The delay to occur after modifying a control
 OnExit("OnUnload") 		; Run a subroutine or function when exiting the script
@@ -38,6 +37,34 @@ ClearProgress:
 	GuiControl,,LoopProgress, 0
 	Return
 }
+
+RefreshPing:
+{
+	
+	SetTimer,, Off
+	GUI, 3:+LastFoundExist	
+	If WinExist()
+	{
+		RunWait %comspec% /c ping -n 1 -w 300 %urlPing% >ping.txt,, Hide
+		FileReadLine, line3, ping.txt, 3
+		FormatTime, now, , hh:mm:ss
+		FoundPos := RegExMatch(line3,"Request timed out.")
+		If FoundPos
+			pingTxt := now "  |  " line3 "`n" PingTxt
+		Else {
+			FoundPos := RegExMatch(line3,"Reply from")
+			If FoundPos
+			{
+				RegExMatch(line3, "time=.*ms", tripTime)
+				pingTxt := now "  |  Reply from " urlPing "  |  " tripTime "`n" pingTxt
+			}
+		}
+		GuiControl, 3:, PingEditBox, % pingTxt
+		Settimer, RefreshPing, 1000
+	}
+	Return
+}
+
 
 AdaptersDDL: 
 {
@@ -137,6 +164,13 @@ SettingCancel:
 	Return	
 }
 
+3GuiClose:
+{
+	Gui, 3:Destroy
+	SetTimer, RefreshPing, Off
+	Return	
+}
+
 NetInfo:
 {
 	Run, rundll32.exe shell32.dll`,Control_RunDLL ncpa.cpl
@@ -201,9 +235,10 @@ ButtonPINGGATEWAY:
 		tToolTip("Invalid Gateway IP")
 	} Else {
 		;target := "CMD.lnk /C ping /t " . Gateway
-		;Run, %target%, %A_WorkingDir%\include
-		
-		Run, %A_WorkingDir%\include\PingGUI.ahk %Gateway%
+		;Run, %target%, %A_WorkingDir%
+		pingTxt := ""
+		urlPing := Gateway
+		GuiPing()
 	}
 	Return
 }
@@ -419,14 +454,14 @@ OnLoad() {
 	Global ; Assume-global mode
 	Static Init := OnLoad() ; Call function
 	
-	I_Icon = %A_WorkingDir%\include\images\Spectrum.ico
+	I_Icon = %A_WorkingDir%\images\Spectrum.ico
 	IfExist, %I_Icon%
 	Menu, Tray, Icon, %I_Icon%
 	Menu, Tray, Tip, SMB ToolBox
 	
 	Gui, 9:+AlwaysOnTop -Caption
 	Gui, 9:Margin, 10, 10
-	Gui, 9:Add, Picture,, %A_WorkingDir%\include\images\splash_400x127.png
+	Gui, 9:Add, Picture,, %A_WorkingDir%\images\splash_400x127.png
 	Gui, 9:Show
 	
 	Sleep, 1000
@@ -453,9 +488,12 @@ OnLoad() {
 OnUnload(ExitReason, ExitCode) {
 	Global ; Assume-global mode
 	
+	If (FileExist("ping.txt")) {
+		FileDelete, ping.txt
+	}
+	
 	Process, Close, %tunnelPID%
 	Process, Close, %sshPID%
-	WinClose, PingGUI.ahk
 }
 
 GuiCreate() {
@@ -716,6 +754,30 @@ paul.launier@charter.com
 	Return
 }
 
+GuiPing()
+{
+	Global ; Assume-global mode
+	width := 320
+	height := 100
+	WinGetActiveStats, Title, W, H, X, Y
+	;WinX := X+(W/2)-(width/2)
+	WinX := X - width - 10
+	If (WinX < 0)
+		WinX := X + W + 10
+	WinY := Y
+	
+	Gui, 3:Destroy
+	Gui, 3:+AlwaysOnTop +LastFound -Resize +HWNDh3Gui
+	Gui, 3:+Owner
+	Gui, 3:Font, S10 cWhite Normal, Arial
+	Gui, 3:Color,, 0x000000
+	Gui, 3:Add, Edit, x0 y0 w%width% h%height% vPingEditBox
+	Gui, 3:Show, w%width% h%height% x%WinX% y%WinY%, Ping Gateway: 
+	
+	SetTimer, RefreshPing, -100
+	
+	Return	
+}
 
 GuiClose(GuiHwnd) {
 	ExitApp ; Terminate the script unconditionally

@@ -8,8 +8,7 @@
 ;SetWorkingDir, % A_ScriptDir ; Set the working directory of the script
 SetBatchLines, -1 		; The speed at which the lines of the script are executed
 SendMode, Input 		; The method for sending keystrokes and mouse clicks
-DetectHiddenWindows, On	; The visibility of hidden windows by the script
-SetTitleMatchMode, 2
+;DetectHiddenWindows, On	; The visibility of hidden windows by the script
 ;SetWinDelay, 0 		; The delay to occur after modifying a window
 ;SetControlDelay, 0 	; The delay to occur after modifying a control
 OnExit("OnUnload") 		; Run a subroutine or function when exiting the script
@@ -137,6 +136,13 @@ SettingCancel:
 	Return	
 }
 
+3GuiClose:
+{
+	Gui, 3:Destroy
+	SetTimer, RefreshPing, Off
+	Return	
+}
+
 NetInfo:
 {
 	Run, rundll32.exe shell32.dll`,Control_RunDLL ncpa.cpl
@@ -201,8 +207,10 @@ ButtonPINGGATEWAY:
 		tToolTip("Invalid Gateway IP")
 	} Else {
 		;target := "CMD.lnk /C ping /t " . Gateway
-		;Run, %target%, %A_WorkingDir%\include
-		
+		;Run, %target%, %A_WorkingDir%
+		;pingTxt := ""
+		;urlPing := Gateway
+		;GuiPing()
 		Run, %A_WorkingDir%\include\PingGUI.ahk %Gateway%
 	}
 	Return
