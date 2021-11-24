@@ -1,0 +1,10 @@
+Test Replacement Values
+
+Network = [NETWORK]
+Gateway = [GATEWAY]
+Useable = [USEABLE]
+Subnet = [SUBNET]
+Dns1 =   [DNS1]
+Dns2 =   [DNS2]
+RipKey = [RIPKEY]
+HostName = [HOST_NAME]

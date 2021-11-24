@@ -1,0 +1,5 @@
+/ tech
+setRouteMode bridge
+setDhcpEnable 0
+commit
+!reset

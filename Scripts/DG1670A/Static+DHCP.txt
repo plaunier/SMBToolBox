@@ -1,0 +1,13 @@
+/ tech
+setRouteMode route
+setRipIp [STATIC] [SUBNET]
+setLanIp 192.168.0.1 255.255.255.0
+setDhcpPoll 192.168.0.2 192.168.0.254
+setRipAuth md5 1 [RIP KEY]
+setRipKeyId 1
+setRipEnable 1
+setRipDhcpEnable 0
+setDhcpEnable 1
+setLanDns override [DNS1] [DNS2]
+commit
+!reset

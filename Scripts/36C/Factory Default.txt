@@ -1,0 +1,2 @@
+nvram factory-default
+reset

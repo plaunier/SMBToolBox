@@ -1,0 +1,25 @@
+oper-mode route
+interface Ethernet address 192.168.0.1 mask 255.255.255.0
+Interface Ethernet 1 address [GATEWAY mask [SUBNET]
+
+Rip key 1 key-string [RIPKEY]
+rip auth-mode enable
+wan-blocking disable
+
+dhcp enable
+
+web-access local disable
+web-access remote disable
+web-access wan disable
+pwd user N0t1nU5e N0t1nU5e
+
+Host-name set SPECTRUM
+Dns primary [DNS1]
+Dns secondary [DNS2]
+
+firewall disable
+firewall protect-router disable
+fragmented-ip disable
+arp-storms disable
+write
+reset

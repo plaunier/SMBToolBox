@@ -1,0 +1,11 @@
+/ tech
+setRouteMode route
+setRipIp [GATEWAY] [SUBNET]
+setRipAuth md5 1 [RIPKEY]
+setRipKeyId 1
+setRipEnable 1
+setRipDhcpEnable 0
+setDhcpEnable 0
+setLanDns override [DNS1] [DNS2]
+commit
+!reset

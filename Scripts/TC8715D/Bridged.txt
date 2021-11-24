@@ -1,0 +1,9 @@
+su
+brcm
+cd non-vol
+cd eRouter
+cd ipv4
+cd rg
+lan_feature_config primary_vlan_bridged true
+write
+/reset

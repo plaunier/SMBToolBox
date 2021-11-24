@@ -1,0 +1,27 @@
+Oper-mode route
+Interface Ethernet 1 address [GATEWAY] mask [SUBNET]
+Rip key 1 key-string [RIPKEY]
+Rip auth-mode enable
+Wan-blocking disable
+
+Dhcp disable
+
+Web-access local disable
+Web-access remote disable
+Web-access wan disable
+Pwd user N0t1nU5e N0t1nU5e
+
+Host-name set TWC
+Dns primary [DNS1]
+Dns secondary [DNS2]
+
+Firewall disable
+Firewall protect-router disable
+Fragmented-ip disable
+Arp-storms disable
+Sip-alg disable
+Interface wireless broadcast_ssid disable
+Interface wireless primary-network  disable
+Interface wireless shutdown
+Write
+reset

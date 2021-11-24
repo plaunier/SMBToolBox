@@ -1,0 +1,6 @@
+oper-mode bridge
+firewall disable
+dhcp disable
+Interface wireless shutdown
+write
+reset

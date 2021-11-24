@@ -1,0 +1,34 @@
+su
+brcm
+cd non-vol
+cd eRouter
+cd ipv4
+cd rg
+wan_feature_config wan_block false
+wan_feature_config rip true
+true
+1
+[RIPKEY]
+0.0.0.0
+30
+1
+lan_feature_config routed_subnet true
+false
+false
+[DNS1]
+[DNS2]
+0.0.0.0
+0.0.0.0
+[NETWORK]
+[SUBNET]
+[GATEWAY]
+0.0.0.0
+0.0.0.0
+0.0.0.0
+0.0.0.0
+0.0.0.0
+0.0.0.0
+lan_feature_config dhcp_server false
+nat_alg 0x800 false
+write
+/reset
