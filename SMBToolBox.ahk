@@ -216,6 +216,7 @@ ButtonSTATIC:
 	GuiControlGet, Gateway
 	GuiControlGet, DNS1
 	GuiControlGet, DNS2
+	CIDR := GetCIDR(SubnetsDDL)
 	
 	If !(ValidIP(Gateway))
 	{
@@ -237,16 +238,9 @@ ButtonSTATIC:
 		IfMsgBox Yes
 		{
 			GuiControl,, % hStatus, Setting local static...
-			;~ Powershell WMI works well for setting static
+			Gui, 1:+Disabled +AlwaysOnTop
+			RunWait, *RunAS PowerShell.exe -Command $adapter = Get-NetAdapter | ? {$_.Status -eq \""up\""} `; If (($adapter | Get-NetIPConfiguration).IPv4Address.IPAddress) { $adapter | Remove-NetIPAddress -AddressFamily \""IPv4\"" -Confirm:$false } `; If (($adapter | Get-NetIPConfiguration).Ipv4DefaultGateway) { $adapter | Remove-NetRoute -AddressFamily \""IPv4\"" -Confirm:$false } `; $adapter | New-NetIPAddress -AddressFamily \""IPv4\"" -IPAddress \""%Useable%\"" -PrefixLength \""%CIDR%\"" -DefaultGateway \""%Gateway%\""  `; $adapter | Set-DnsClientServerAddress -ServerAddresses \""%DNS1%\""`,\""%DNS2%\"",,Hide
 			
-			;cmdArgs := " /c netsh interface ipv4 set address " AdaptersDDL " static " Useable " " SubnetsDDL " " GateWay " & netsh interface ipv4 set dns " AdaptersDDL " static " DNS1 " & netsh interface ipv4 add dns " AdaptersDDL " addr=" DNS2 " index=2"
-			;Run, *RunAs %comspec% %cmdArgs%,,hide
-			
-			;CIDR := GetCIDR(SubnetsDDL)
-			;psArgs := "New-NetIPAddress -InterfaceIndex " AdapterIndex " -IPAddress " Useable " -PrefixLength " CIDR " -DefaultGateway " Gateway " `; Set-DnsClientServerAddress -InterfaceIndex " AdapterIndex " -ServerAddresses """ DNS1 " , " DNS2 """"
-			;Run, *RunAS PowerShell.exe -Command %psArgs%,, Hide
-			
-			RunWait, *RunAs PowerShell.exe -Command $wmi = Get-WmiObject win32_NetworkAdapterConfiguration -Filter 'IPEnabled = true' `; $DNSServers = \""%DNS1%\""`,\""%DNS2%\"" `; $wmi.EnableStatic(\""%Useable%\""`, \""%SubnetsDDL%\"") `; $wmi.SetGateways(\""%Gateway%\""`, 1) `; $wmi.SetDNSServerSearchOrder($DNSServers),, Hide, psPID
 			iCount := 10
 			Loop, %iCount% 
 			{
@@ -254,6 +248,7 @@ ButtonSTATIC:
 				GuiControl,, LoopProgress, % Position
 				Sleep, 100
 			}
+			Gui, 1:-Disabled -AlwaysOnTop
 			SetTimer, ClearProgress, -500
 			SetTimer, ReadyStatus, -500
 		}
@@ -274,15 +269,9 @@ ButtonDHCP:
 	MsgBox, 308, %WinName%, Set DHCP on this PC?
 	IfMsgBox Yes
 	{
-		
-		;~ WMI seems to work best for DHCP
+		Gui, 1:+Disabled +AlwaysOnTop
 		GuiControl,, % hStatus, Setting local DHCP...
-		wmiDHCPArgs := "$adapter = Get-WmiObject win32_NetworkAdapterConfiguration -Filter 'IPEnabled = true' `; $adapter.SetDNSServerSearchOrder() `; $adapter.EnableDHCP()"
-		Run, *RunAs PowerShell.exe -Command %wmiDHCPArgs%,, Hide
-		;psArgs := "Set-NetIPInterface -InterfaceAlias" AdaptersDDL " -Dhcp Enabled"
-		;Run, *RunAs PowerShell.exe -Command Set-DnsClientServerAddress -InterfaceIndex %AdapterIndex% -ResetServerAddresses `; Set-NetIPInterface -InterfaceAlias %AdaptersDDL% -Dhcp Enabled,,Hide
-		;args := " /c netsh interface ipv4 set address " AdaptersDDL " dhcp"
-		;Run, *RunAs %comspec% %args%
+		RunWait, *RunAs PowerShell.exe -Command $adapter = Get-NetAdapter | ? {$_.Status -eq \""up\""} `; $interface = $adapter | Get-NetIPInterface -AddressFamily \""IPv4\"" `; If (($interface | Get-NetIPConfiguration).Ipv4DefaultGateway) { $interface | Remove-NetRoute -Confirm:$false } `; $interface | Set-NetIPInterface -DHCP Enabled `; $interface | Set-DnsClientServerAddress -ResetServerAddresses,,Hide
 		
 		iCount := 10
 		Loop, %iCount% 
@@ -291,9 +280,9 @@ ButtonDHCP:
 			GuiControl,, LoopProgress, % Position
 			Sleep, 100
 		}
+		Gui, 1:-Disabled -AlwaysOnTop
 		SetTimer, ClearProgress, -500
 		SetTimer, ReadyStatus, -500
-		;GuiControl,, LocalIP, % GetIPByAdaptor(AdaptersDDL)
 	}
 	Return
 }
@@ -314,7 +303,7 @@ ButtonCreateTunnel:
 		IfMsgBox Yes
 		{		
 			GuiControl,, % hStatus, Setting up HTTP tunnel...
-			jb := 
+			jb := 1
 			Process, Close, %tunnelPID%
 			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
 			loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
@@ -344,7 +333,7 @@ ButtonConnecttoModem:
 {
 	GuiControlGet, TenDot
 	If (ValidIP(TenDot)) {
-		jb := 3
+		jb := 1
 		width := 220
 		;WinGetPos, X, Y,,, A
 		WinGetActiveStats, Title, W, H, X, Y
@@ -561,7 +550,6 @@ GuiCreate() {
 	Gui, Font, c666666
 	GuiControl, Font, % hStatus
 	
-	;Gui, Show, x2000 y40 w540, SMB ToolBox
 	Gui, Show, w540, SMB ToolBox
 	
 	; Get Adapters
@@ -602,7 +590,6 @@ GuiCreate() {
 	GuiControl, -Disabled, AdaptersDDL
 	GuiControlGet, AdaptersDDL
 	AdapterIndex := GetAdapterIndex(AdaptersDDL)
-	;GuiControl,, LocalIP, % GetIPByAdaptor(AdaptersDDL)
 	
 	; Get Modem Names
 	GuiControl, +Disabled, ModemsDDL
@@ -621,6 +608,80 @@ GuiCreate() {
 	SetTimer, ClearProgress, -100
 	SetTimer, ReadyStatus, -100
 	Return
+}
+
+GuiClose(GuiHwnd) {
+	ExitApp ; Terminate the script unconditionally
+}
+
+GuiEscape(GuiHwnd) {
+	ExitApp ; Terminate the script unconditionally
+}
+
+GetIPByAdaptor(adaptorName) {
+	objWMIService := ComObjGet("winmgmts:{impersonationLevel = impersonate}!\\.\root\cimv2")
+	colItems := objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapter WHERE NetConnectionID = '" adaptorName "'")._NewEnum, colItems[objItem]
+	colItems := objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE InterfaceIndex = '" objItem.InterfaceIndex "'")._NewEnum, colItems[objItem]
+	
+	Return objItem.IPAddress[0]
+}
+
+GetCIDR(sub){
+	If (ValidIP(sub)) {
+		StringSplit, Octets, sub, .
+		arrSubnet := {0:24, 128:25, 192:26, 224:27, 240:28, 248:29, 252:30, 254:31, 255:32}
+		Return arrSubnet[Octets4]
+	}
+	Return 0
+}
+
+GetAdapterIndex(ad){
+	
+	RunWait, PowerShell.exe Get-NetAdapter -Name %ad% | Format-List -Property IfIndex | Out-File -FilePath %A_Temp%\NetInfo.txt -Width 300,, Hide
+	Loop, read, %A_Temp%\NetInfo.txt
+	{
+		strPos := InStr(A_LoopReadLine, ":")
+		If (strPos != 0) {
+			StringRight, iPos, A_LoopReadLine, StrLen(A_LoopReadLine)-strPos
+			iPos := Trim(iPos)
+			Break
+		}	
+	}
+	
+	If (FileExist(A_Temp "\NetInfo.txt")) {
+		FileDelete, %A_Temp%\NetInfo.txt
+	}
+	
+	Return, iPos
+}
+
+ValidIP(a) {
+	Loop, Parse, a, .
+	{
+		If A_LoopField is digit
+			If A_LoopField between 0 and 255
+				e++
+		c++
+	}
+	Return, e = 4 AND c = 4
+}
+
+tToolTip(tip) {
+	ToolTip, %tip%
+	time := -2000
+	SetTimer, RemoveToolTip, %time%
+	return
+}
+
+setStatus(msg) {
+	global
+	GuiControl,, % hStatus, % msg
+	SetTimer, ReadyStatus, -1500
+}
+
+ProcessExist(Name){
+	Process, Exist, %Name%
+	Return Errorlevel
 }
 
 GuiSettings()
@@ -716,80 +777,6 @@ paul.launier@charter.com
 	Return
 }
 
-
-GuiClose(GuiHwnd) {
-	ExitApp ; Terminate the script unconditionally
-}
-
-GuiEscape(GuiHwnd) {
-	ExitApp ; Terminate the script unconditionally
-}
-
-GetIPByAdaptor(adaptorName) {
-	objWMIService := ComObjGet("winmgmts:{impersonationLevel = impersonate}!\\.\root\cimv2")
-	colItems := objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapter WHERE NetConnectionID = '" adaptorName "'")._NewEnum, colItems[objItem]
-	colItems := objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE InterfaceIndex = '" objItem.InterfaceIndex "'")._NewEnum, colItems[objItem]
-	
-	Return objItem.IPAddress[0]
-}
-
-GetCIDR(sub){
-	If (ValidIP(sub)) {
-		StringSplit, Octets, sub, .
-		arrSubnet := {0:24, 128:25, 192:26, 224:27, 240:28, 248:29, 252:30, 254:31, 255:32}
-		Return arrSubnet[Octets4]
-	}
-	Return 0
-}
-
-GetAdapterIndex(ad){
-	
-	RunWait, PowerShell.exe Get-NetAdapter -Name %ad% | Format-List -Property IfIndex | Out-File -FilePath %A_Temp%\NetInfo.txt -Width 300,, Hide
-	Loop, read, %A_Temp%\NetInfo.txt
-	{
-		strPos := InStr(A_LoopReadLine, ":")
-		If (strPos != 0) {
-			StringRight, iPos, A_LoopReadLine, StrLen(A_LoopReadLine)-strPos
-			iPos := Trim(iPos)
-			Break
-		}	
-	}
-	
-	If (FileExist(A_Temp "\NetInfo.txt")) {
-		FileDelete, %A_Temp%\NetInfo.txt
-	}
-	
-	Return, iPos
-}
-
-ValidIP(a) {
-	Loop, Parse, a, .
-	{
-		If A_LoopField is digit
-			If A_LoopField between 0 and 255
-				e++
-		c++
-	}
-	Return, e = 4 AND c = 4
-}
-
-tToolTip(tip) {
-	ToolTip, %tip%
-	time := -2000
-	SetTimer, RemoveToolTip, %time%
-	return
-}
-
-setStatus(msg) {
-	global
-	GuiControl,, % hStatus, % msg
-	SetTimer, ReadyStatus, -1500
-}
-
-ProcessExist(Name){
-	Process, Exist, %Name%
-	Return Errorlevel
-}
 ;===============================================================================
 ; Hotkeys
 ;===============================================================================

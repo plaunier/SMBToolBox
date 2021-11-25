@@ -1,0 +1,14 @@
+uci set ripd.config.version=2
+uci set ripd.config.key1=[RIPKEY]
+uci set ripd.config.key_chain=ripblock
+uci set ripd.config.enable=1
+uci set ripd.config.key_select=2
+ripconfig set 1 rip_ip [NETWORK]
+ripconfig set 1 rip_subnet [SUBNET]
+ripconfig set 1 rip_defaultgateway [GATEWAY]
+ripconfig set 1 enable 1
+iptables -I zone_wan_input -p icmp -m icmp --icmp-type 8 -m comment --comment Allow-Ping -j ACCEPT
+iptables -D INPUT_WAN_CTRL -d <CUST_GW_IP>/32 -i eth0 -p icmp -j DROP
+ripconfig save
+ripconfig restart
+

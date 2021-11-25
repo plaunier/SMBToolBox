@@ -1,0 +1,19 @@
+xmo-client -t -p Device.X_Charter.RIP.1.Enable -s true
+xmo-client -t -p Device.X_Charter.RIP.1.AuthenticationMode -s MD5
+xmo-client -t -p Device.X_Charter.RIP.1.KeyString -s [RIPTKEY]
+xmo-client -t -p Device.X_Charter.RIP.1.Key -s 1
+
+xmo-client -t -p Device.X_Charter.RIP.1.RIPIP -s [NETWORK]
+xmo-client -t -p Device.X_Charter.RIP.1.RIPSubnet -s [SUBNET]
+xmo-client -t -p Device.X_Charter.RIP.1.RIPDefaultGateway -s [GATEWAY]
+
+xmo-client -t -p Device.X_Charter.RIP.2.Enable -s true
+xmo-client -t -p Device.X_Charter.RIP.2.RIPIP -s [NETWORK]
+xmo-client -t -p Device.X_Charter.RIP.2.RIPSubnet -s [SUBNET]
+xmo-client -t -p Device.X_Charter.RIP.2.RIPDefaultGateway -s [GATEWAY]
+
+xmo-client -t -p Device.X_Charter.RIP.3.Enable -s true
+xmo-client -t -p Device.X_Charter.RIP.3.RIPIP -s [SUBNET]
+xmo-client -t -p Device.X_Charter.RIP.3.RIPSubnet -s <SUBNETMASK>
+xmo-client -t -p Device.X_Charter.RIP.3.RIPDefaultGateway -s [GATEWAY]
+reboot
