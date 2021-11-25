@@ -237,7 +237,7 @@ ButtonSTATIC:
 		IfMsgBox Yes
 		{
 			GuiControl,, % hStatus, Setting local static...
-			;~ Powershell WMI works well for setting static
+			;~ Powershell works well for setting static
 			
 			;cmdArgs := " /c netsh interface ipv4 set address " AdaptersDDL " static " Useable " " SubnetsDDL " " GateWay " & netsh interface ipv4 set dns " AdaptersDDL " static " DNS1 " & netsh interface ipv4 add dns " AdaptersDDL " addr=" DNS2 " index=2"
 			;Run, *RunAs %comspec% %cmdArgs%,,hide
@@ -246,7 +246,6 @@ ButtonSTATIC:
 			;psArgs := "New-NetIPAddress -InterfaceIndex " AdapterIndex " -IPAddress " Useable " -PrefixLength " CIDR " -DefaultGateway " Gateway " `; Set-DnsClientServerAddress -InterfaceIndex " AdapterIndex " -ServerAddresses """ DNS1 " , " DNS2 """"
 			;Run, *RunAS PowerShell.exe -Command %psArgs%,, Hide
 			
-			RunWait, *RunAs PowerShell.exe -Command $wmi = Get-WmiObject win32_NetworkAdapterConfiguration -Filter 'IPEnabled = true' `; $DNSServers = \""%DNS1%\""`,\""%DNS2%\"" `; $wmi.EnableStatic(\""%Useable%\""`, \""%SubnetsDDL%\"") `; $wmi.SetGateways(\""%Gateway%\""`, 1) `; $wmi.SetDNSServerSearchOrder($DNSServers),, Hide, psPID
 			iCount := 10
 			Loop, %iCount% 
 			{
@@ -256,6 +255,7 @@ ButtonSTATIC:
 			}
 			SetTimer, ClearProgress, -500
 			SetTimer, ReadyStatus, -500
+			;GuiControl,, LocalIP, % GetIPByAdaptor(AdaptersDDL)
 		}
 	}
 	Return

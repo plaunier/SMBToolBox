@@ -246,6 +246,7 @@ ButtonSTATIC:
 			;psArgs := "New-NetIPAddress -InterfaceIndex " AdapterIndex " -IPAddress " Useable " -PrefixLength " CIDR " -DefaultGateway " Gateway " `; Set-DnsClientServerAddress -InterfaceIndex " AdapterIndex " -ServerAddresses """ DNS1 " , " DNS2 """"
 			;Run, *RunAS PowerShell.exe -Command %psArgs%,, Hide
 			
+			
 			RunWait, *RunAs PowerShell.exe -Command $wmi = Get-WmiObject win32_NetworkAdapterConfiguration -Filter 'IPEnabled = true' `; $DNSServers = \""%DNS1%\""`,\""%DNS2%\"" `; $wmi.EnableStatic(\""%Useable%\""`, \""%SubnetsDDL%\"") `; $wmi.SetGateways(\""%Gateway%\""`, 1) `; $wmi.SetDNSServerSearchOrder($DNSServers),, Hide, psPID
 			iCount := 10
 			Loop, %iCount% 

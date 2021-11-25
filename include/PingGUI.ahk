@@ -67,7 +67,7 @@ GuiCreate() {
 	Gui, Font, S10 cWhite Normal, Consolas
 	Gui, Color,, 0x000000
 	Gui, Add, Edit, x0 y0 w%width% h%height% vPingEditBox
-	Gui, Show, w%width% h%height% x%WinX% y%WinY%, Ping Gateway: %pingURL%
+	Gui, Show, w%width% h%height% x%WinX% y%WinY%, Pinging Gateway: %pingURL%
 	
 	SetTimer, RefreshPing, -100
 	
