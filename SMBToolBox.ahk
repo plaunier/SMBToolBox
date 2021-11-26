@@ -456,11 +456,8 @@ GuiCreate() {
 	Gui, Font, S11 CDefault Normal, Courier
 	
 	; Top Row 0
-	;Gui, Font, S11 CDefault Bold, Arial
-	;Gui, Add, Text, x%xCol_1% y%yTop_Row0_Text% w140 h20, Select Adapter:
+	
 	Gui, Font, S10 CDefault Normal, Arial
-	;Gui, Add, DropDownList, x%xCol_1% y%yTop_Row0_Obj% w220 vAdaptersDDL gAdaptersDDL
-	;Gui,  Add, Text, x445 y20 h35 0x11
 	Gui, Add, Picture, x410 y20 w25 h25 Icon19 gIpInfo, C:\WINDOWS\SYSTEM32\SHELL32.dll
 	Gui,  Add, Text, x445 y15 h35 0x11
 	Gui, Add, Picture, x455 y20 w25 h25 Icon89 gNetInfo, C:\WINDOWS\SYSTEM32\SHELL32.dll
@@ -493,7 +490,6 @@ GuiCreate() {
 	Gui, Add, Button, x%xButtonCol_1% y%yTop_Row3_Button% w140 h25, PING GATEWAY
 	Gui, Add, Button, x250 y%yTop_Row3_Button% w100 h25, STATIC
 	Gui, Add, Button, x%xCol_3% y%yTop_Row3_Button% w100 h25, DHCP
-	;Gui, Add, Picture, x505 yp w20 h20 Icon89 gNetInfo, C:\WINDOWS\SYSTEM32\SHELL32.dll
 	
 	; Horizontal Line
 	Gui,  Add, Text, xm y%ySeperateTop% w520 0x10
@@ -505,7 +501,7 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_3% y%yMid_Row1_Text% w160 h20 , Script:
 	Gui, Font, S11 CDefault Normal, Courier
 	Gui, Add, Edit, x%xCol_1% y%yMid_Row1_Obj% w160 vTenDot +Center	
-	; Gui, Font, S11 CDefault Normal, Arial
+	Gui, Font, S10 CDefault Normal, Arial
 	Gui, Add, DropDownList, x%xCol_2% y%yMid_Row1_Obj% w160 vModemsDDL gModemsDDL +Disabled
 	Gui, Add, DropDownList, x%xCol_3% y%yMid_Row1_Obj% w160 vScriptDDL gScriptDDL +Disabled, <-- Select Modem||
 	
@@ -521,9 +517,8 @@ GuiCreate() {
 	Gui, Font, S8 CDefault Bold, Arial
 	Gui, Add, Button, x%xCol_1% y+1 w80 h20, Refresh
 	Gui, Add, Button, x+10 yp w60 h20, Copy
-	Gui, Font, S11 CDefault Normal, Courier
-	; Gui, Font, S11 CDefault Normal, Arial
-	Gui, Add, Edit, x%xCol_1% y+5 h200 w520 HWNDhScriptText vScriptText vscroll
+	Gui, Font, S10 CDefault Normal, Arial
+	Gui, Add, Edit, x%xCol_1% y+5 h200 w520 HWNDhScriptText vScriptText +VScroll +HScroll -Wrap
 	
 	; Status
 	Gui, Add, Text, x%xCol_1% y+10 w250 HWNDhStatus,
