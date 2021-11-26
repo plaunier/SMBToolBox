@@ -1,17 +1,8 @@
 ﻿#SingleInstance, Force	; Allow only one running instance of script
-;#Persistent 			; Keep the script permanently running until terminated
-;#NoEnv 				; Avoid checking empty variables for environment variables
-;#Warn 					; Enable warnings to assist with detecting common errors
-;#NoTrayIcon 			; Disable the tray icon of the script
-;#KeyHistory, 0 		; Keystroke and mouse click history
-;ListLines, Off 		; The script lines most recently executed
-;SetWorkingDir, % A_ScriptDir ; Set the working directory of the script
 SetBatchLines, -1 		; The speed at which the lines of the script are executed
 SendMode, Input 		; The method for sending keystrokes and mouse clicks
 DetectHiddenWindows, On	; The visibility of hidden windows by the script
-SetTitleMatchMode, 2
-;SetWinDelay, 0 		; The delay to occur after modifying a window
-;SetControlDelay, 0 	; The delay to occur after modifying a control
+SetTitleMatchMode, 2	; Sets the matching behavior of the WinTitle parameter
 OnExit("OnUnload") 		; Run a subroutine or function when exiting the script
 Return 					; End automatic execution
 
@@ -21,38 +12,43 @@ Return 					; End automatic execution
 
 RemoveToolTip:
 {
-	SetTimer,, off
+	;~ Timer routine to remove tooltip
+	SetTimer,, Off
 	ToolTip
 	Return
 }
 ReadyStatus:
 {
-	SetTimer,, off
+	;~ Timer routine to reset status text in main GUI
+	SetTimer,, Off
 	GuiControl,, % hStatus, Ready
 	Return
 }
 
 ClearProgress:
 {
+	;~ Timer routine to reset the Progress bar on Main GUI
 	SetTimer,, Off
 	GuiControl,,LoopProgress, 0
 	Return
 }
 
-AdaptersDDL: 
+WinMoveMsgBox:
 {
-	Gui, Submit, NoHide
-	GuiControl,, % hSelectedAdapter, % AdaptersDDL
-	GuiControlGet, AdaptersDDL
-	AdapterIndex := GetAdapterIndex(AdaptersDDL)
+	;~ Timer routine to move a MsgBox
+	If WinExist(WinName)
+		SetTimer, WinMoveMsgBox, Off
+	WinMove, %WinName%, , %WinX%, %WinY%
 	Return
 }
-	
+
 ModemsDDL:
 {
+	;~ Drop Down List routine - Modem Model
 	GuiControlGet, ModemsDDL
 	scriptNames := ""
 	scriptFolder := A_WorkingDir "\Scripts\" ModemsDDL "\"
+	;~ Create script drop down list from Scripts directory
 	Loop, Files, % scriptFolder "\*", F
 	{
 		SplitPath, A_LoopFileName, name1, dir1, ext1, name_no_ext1, drive1
@@ -63,6 +59,8 @@ ModemsDDL:
 	
 	ScriptDDL := ""
 	GuiControl,, ScriptDDL, % scriptNames
+	
+	;~ Enable Script selection and Connect Button after first selection
 	GuiControl, -Disabled, scriptDDL
 	GuiControl, -Disabled, Connect
 	
@@ -72,6 +70,8 @@ ModemsDDL:
 
 ScriptDDL:
 {
+	;~ Drop Down List Routine - Script
+	;~ Parses selected script and fills in the values
 	GuiControlGet, ModemsDDL
 	GuiControlGet, ScriptDDL
 	GuiControlGet, Gateway
@@ -86,6 +86,7 @@ ScriptDDL:
 	FileRead, script, % file
 	If (ValidIP(Gateway))
 	{
+		;~ Network IP is one less than Gateway
 		StringSplit, Octets, Gateway, .
 		Octets4--
 		If (Octets4 < 0 )
@@ -95,6 +96,7 @@ ScriptDDL:
 		script := StrReplace(script, "[NETWORK]", Network)
 	}
 	
+	;~ Find and Replace remaining values
 	If (ValidIP(Useable))
 		script := StrReplace(script, "[USEABLE]", Useable)
 	script := StrReplace(script, "[SUBNET]", SubnetsDDL)
@@ -103,21 +105,22 @@ ScriptDDL:
 	script := StrReplace(script, "[RIPKEY]", ripkey)
 	script := StrReplace(script, "[HOST_NAME]", host)
 	
+	;~ Put Replaced script into Script Edit Box
 	GuiControl,, ScriptText, % script
 	Return
 }
 
 GW_Label:
 {
-	;GuiControl,, % hUseable, 10.120.166.230
-	;Return
+	;~ Routine when Gateway Edit Box is modified
 	GuiControlGet, Gateway
 	If (ValidIP(Gateway)) {
+		;~ Create a Useable IP one more than Gateway
 		StringSplit, Octets, Gateway, .
 		Octets4++
 		If (Octets4 >=256)
 			Octets4 := 0
-		
+		;~ Update Useable IP Edit Box
 		GuiControl,, Useable, %Octets1%.%Octets2%.%Octets3%.%Octets4%
 	}
 	Return
@@ -125,6 +128,7 @@ GW_Label:
 
 ChangeDefaults:
 {
+	;~ Routine when Settings image is clicked.
 	GuiSettings()
 	Return
 }
@@ -132,6 +136,7 @@ ChangeDefaults:
 SettingCancel:
 2GuiClose:
 {
+	;~ OnExit routine when closing Settings GUI
 	Gui, 1:-Disabled -AlwaysOnTop
 	Gui, 2:Destroy
 	Return	
@@ -139,24 +144,23 @@ SettingCancel:
 
 NetInfo:
 {
+	;~ Opens 'Network Connections' Network image is clicked
 	Run, rundll32.exe shell32.dll`,Control_RunDLL ncpa.cpl
 	Return
 }
 
 IPInfo:
 {
+	;~ Routine when Network Information image is clicked
+	;~ Queries network adaptor for current Network information
 	for objItem in ComObjGet("winmgmts:\\.\root\CIMV2").ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled = True")
 	{
 		
 		if (objItem.IPAddress[0] = A_IPAddress1)
 		{
-			width := 340
-			;WinGetPos, X, Y,,, A
-			WinGetActiveStats, Title, W, H, X, Y
-			WinX := X+(W/2)-(width/2)
-			WinY := Y+100
 			WinName := "Network Adapter Info"
-			SetTimer, WinMoveMsgBox, 20
+			moveMsgBox(340)
+			
 			Gui +OwnDialogs
 			MsgBox, 4096, %WinName%, % "Description:`t" objItem.Description[0] "`n"
 						. "IP Address:`t`t" objItem.IPAddress[0] "`n"
@@ -171,38 +175,24 @@ IPInfo:
 	Return
 }
 
-UseableIP_Label:
-{
-	Return
-}
-
-WinMoveMsgBox:
-{
-	If WinExist(WinName)
-		SetTimer, WinMoveMsgBox, OFF
-	WinMove, %WinName%, , %WinX%, %WinY%
-	Return
-}
-
-
 ;===============================================================================
 ; Button Events
 ;===============================================================================
 ButtonSaveChanges:
 {
-	
+	;~ Routine when settings Save Button is clicked
 	Return
 }
 ButtonPINGGATEWAY:
 {
+	;~ Routine when Ping Gateway Button is clicked
+	;~ Pings a valid Gateway IP
 	GuiControlGet, Gateway
 	If !(ValidIP(Gateway)) {
 		setStatus("Invalid Gateway IP")
 		tToolTip("Invalid Gateway IP")
 	} Else {
-		;target := "CMD.lnk /C ping /t " . Gateway
-		;Run, %target%, %A_WorkingDir%\include
-		
+		;~ run a seperate ahk process to show a custom gui with ping details
 		Run, %A_WorkingDir%\include\PingGUI.ahk %Gateway%
 	}
 	Return
@@ -210,12 +200,16 @@ ButtonPINGGATEWAY:
 
 ButtonSTATIC:
 {
-	GuiControlGet, AdaptersDDL
+	;~ Routine when the set Static button is clicked
+	;~ Sets the active ethernet adapater with a static IP
+	;~ After much trial and error between netsh, WMI, and powershell; Powershell is the most relaible in windows 10
 	GuiControlGet, Useable
 	GuiControlGet, SubnetsDDL
 	GuiControlGet, Gateway
 	GuiControlGet, DNS1
 	GuiControlGet, DNS2
+	
+	;~ Get the subnet mask (CIDR) of the Subnet
 	CIDR := GetCIDR(SubnetsDDL)
 	
 	If !(ValidIP(Gateway))
@@ -226,21 +220,19 @@ ButtonSTATIC:
 		setStatus("Invalid Usable IP")
 		tToolTip("Invalid Usable IP")
 	} Else {
-		width := 220
-		;WinGetPos, X, Y,,, A
-		WinGetActiveStats, Title, W, H, X, Y
-		WinX := X+(W/2)-(width/2)
-		WinY := Y+100
+		msgBoxWidth := 220
 		WinName := "Set Static?"
-		SetTimer, WinMoveMsgBox, 20
+		moveMsgBox(msgBoxWidth)
 		Gui +OwnDialogs
 		MsgBox, 308, %WinName%, Set a Static IP on this PC?`n`nIP= %Useable%
 		IfMsgBox Yes
 		{
 			GuiControl,, % hStatus, Setting local static...
-			Gui, 1:+Disabled +AlwaysOnTop
+			Gui, 1:+Disabled +AlwaysOnTop ;~ Disable main gui until the command completes
 			RunWait, *RunAS PowerShell.exe -Command $adapter = Get-NetAdapter | ? {$_.Status -eq \""up\""} `; If (($adapter | Get-NetIPConfiguration).IPv4Address.IPAddress) { $adapter | Remove-NetIPAddress -AddressFamily \""IPv4\"" -Confirm:$false } `; If (($adapter | Get-NetIPConfiguration).Ipv4DefaultGateway) { $adapter | Remove-NetRoute -AddressFamily \""IPv4\"" -Confirm:$false } `; $adapter | New-NetIPAddress -AddressFamily \""IPv4\"" -IPAddress \""%Useable%\"" -PrefixLength \""%CIDR%\"" -DefaultGateway \""%Gateway%\""  `; $adapter | Set-DnsClientServerAddress -ServerAddresses \""%DNS1%\""`,\""%DNS2%\"",,Hide
 			
+			;~ show a status bar progression over 1000ms
+			;~ TODO: make this an accurate calculation for the set static routine
 			iCount := 10
 			Loop, %iCount% 
 			{
@@ -248,6 +240,7 @@ ButtonSTATIC:
 				GuiControl,, LoopProgress, % Position
 				Sleep, 100
 			}
+			;~ reenable main gui and reset status
 			Gui, 1:-Disabled -AlwaysOnTop
 			SetTimer, ClearProgress, -500
 			SetTimer, ReadyStatus, -500
@@ -258,21 +251,21 @@ ButtonSTATIC:
 
 ButtonDHCP:
 {
-	width := 220
-	;WinGetPos, X, Y,,, A
-	WinGetActiveStats, Title, W, H, X, Y
-	WinX := X+(W/2)-(width/2)
-	WinY := Y+100
+	;~ Routine when the set DHCP button is clicked
+	;~ Sets the active ethernet adapater to DHCP
+	;~ After much trial and error between netsh, WMI, and powershell; Powershell is the most relaible in windows 10
 	WinName := "Set DHCP?"
-	SetTimer, WinMoveMsgBox, 20
-	Gui +OwnDialogs
+	moveMsgBox(220)
+	Gui +OwnDialogs ;~ used to lock main gui until a selection is made
 	MsgBox, 308, %WinName%, Set DHCP on this PC?
 	IfMsgBox Yes
 	{
-		Gui, 1:+Disabled +AlwaysOnTop
+		Gui, 1:+Disabled +AlwaysOnTop ;~ Disable main gui until the command completes
 		GuiControl,, % hStatus, Setting local DHCP...
 		RunWait, *RunAs PowerShell.exe -Command $adapter = Get-NetAdapter | ? {$_.Status -eq \""up\""} `; $interface = $adapter | Get-NetIPInterface -AddressFamily \""IPv4\"" `; If (($interface | Get-NetIPConfiguration).Ipv4DefaultGateway) { $interface | Remove-NetRoute -Confirm:$false } `; $interface | Set-NetIPInterface -DHCP Enabled `; $interface | Set-DnsClientServerAddress -ResetServerAddresses,,Hide
 		
+		;~ show a status bar progression over 1000ms
+		;~ TODO: make this an accurate calculation for the DCHP routine
 		iCount := 10
 		Loop, %iCount% 
 		{
@@ -280,6 +273,7 @@ ButtonDHCP:
 			GuiControl,, LoopProgress, % Position
 			Sleep, 100
 		}
+		;~ reenable main gui and reset status
 		Gui, 1:-Disabled -AlwaysOnTop
 		SetTimer, ClearProgress, -500
 		SetTimer, ReadyStatus, -500
@@ -289,22 +283,21 @@ ButtonDHCP:
 
 ButtonCreateTunnel:
 {
+	;~ Routine when Create Tunnel button is clicked
+	;~ Use Kitty to create a tunnel through a company JumpBox to the modem's 10dot IP address
 	GuiControlGet, TenDot
 	If (ValidIP(TenDot)) {
-		width := 220
-		;WinGetPos, X, Y,,, A
-		WinGetActiveStats, Title, W, H, X, Y
-		WinX := X+(W/2)-(width/2)
-		WinY := Y+100
 		WinName := "Create Tunnel?"
-		SetTimer, WinMoveMsgBox, 20
-		Gui +OwnDialogs
+		moveMsgBox(220)
+		Gui +OwnDialogs ;~ lock main gui until selection is made
 		MsgBox, 308, %WinName%, Create tunnel to:`n     %TenDot%
 		IfMsgBox Yes
 		{		
 			GuiControl,, % hStatus, Setting up HTTP tunnel...
-			jb := 1
-			Process, Close, %tunnelPID%
+			;~ select the NE1 jumpbox
+			;~ TODO: Add this option into the settings menu
+			jb := 1 
+			Process, Close, %tunnelPID% ; Closes any existing instance
 			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
 			loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
 			tunnelArg := "-L 80:" TenDot ":80 -L 8080:" TenDot ":8080"
@@ -312,6 +305,7 @@ ButtonCreateTunnel:
 			
 			Run, %target%, %A_WorkingDir%\KiTTY, Minimize Hide, tunnelPID
 			
+			;~ show a status bar progression over 1000ms
 			iCount := 10
 			Loop, %iCount% 
 			{
@@ -331,36 +325,28 @@ ButtonCreateTunnel:
 
 ButtonConnecttoModem:
 {
+	;~ Routine when Connect to Modem button is clicked
+	;~ TODO: Add functionality for D3.1 modems/routers since they do not use the 10dot modem IP like AWG modems
 	GuiControlGet, TenDot
 	If (ValidIP(TenDot)) {
-		jb := 1
-		width := 220
-		;WinGetPos, X, Y,,, A
-		WinGetActiveStats, Title, W, H, X, Y
-		WinX := X+(W/2)-(width/2)
-		WinY := Y+200
+		jb := 1 ;~ Select the NE1 jumpbox | need to add this as an option in settings
+		;~ Calculate position for MsgBox
 		WinName := "Connect to Modem"
-		SetTimer, WinMoveMsgBox, 20
-		Gui +OwnDialogs
+		moveMsgBox(220)
+		Gui +OwnDialogs ;~ lock main gui until a slection is made
 		MsgBox, 4, %WinName%, Connet to Jumpbox?
 		IfMsgBox, Yes
 		{
-			;connect to Jumpbox over ssh
+			;~ Connect and login to selcted Jumpbox over ssh
 			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
 			loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
 			target := fileName " " loginArg 
 			Run, %target%, %A_WorkingDir%\KiTTY,, sshPID
 			
-			; send telnet command to Jumpbox which will connect to the modem
-			
-			width := 220
-			;WinGetPos, X, Y,,, A
-			WinGetActiveStats, Title, W, H, X, Y
-			WinX := X+(W/2)-(width/2)
-			WinY := Y+200
+			;~ send telnet command to Jumpbox which will connect to the modem
 			WinName := "Telnet to Modem"
-			SetTimer, WinMoveMsgBox, 20
-			Gui +OwnDialogs			
+			moveMsgBox(220)
+			Gui +OwnDialogs ;~ lock main gui until a slection is made
 			;MsgBox,0,Telnet, When Ready: Press Ok to Telnet to modem.
 			MsgBox,0,Telnet, Wait for Jump Box to Connect!`n`nClick OK to Telnet to %TenDot%`n`nUsername:`ttechnician`nPassword:`t(Copied to Clipboard)
 			IfMsgBox, OK
@@ -430,10 +416,6 @@ OnLoad() {
 	JumpBox[2] := {"name": "NorthEast 2", "address": "24.24.43.133", "port": "22", "user": "bctechcpe", "pw": "T3chBCcp3"}
 	JumpBox[3] := {"name": "Test Box", "address": "192.168.1.202", "port": "22", "user": "technician", "pw": "technician"}
 	
-	If (FileExist(A_Temp "\NetInfo.txt")) {
-		FileDelete, %A_Temp%\NetInfo.txt
-	}
-	
 	If (FileExist("ping.txt")) {
 		FileDelete, ping.txt
 	}
@@ -474,10 +456,10 @@ GuiCreate() {
 	Gui, Font, S11 CDefault Normal, Courier
 	
 	; Top Row 0
-	Gui, Font, S11 CDefault Bold, Arial
-	Gui, Add, Text, x%xCol_1% y%yTop_Row0_Text% w140 h20, Select Adapter:
+	;Gui, Font, S11 CDefault Bold, Arial
+	;Gui, Add, Text, x%xCol_1% y%yTop_Row0_Text% w140 h20, Select Adapter:
 	Gui, Font, S10 CDefault Normal, Arial
-	Gui, Add, DropDownList, x%xCol_1% y%yTop_Row0_Obj% w220 vAdaptersDDL gAdaptersDDL
+	;Gui, Add, DropDownList, x%xCol_1% y%yTop_Row0_Obj% w220 vAdaptersDDL gAdaptersDDL
 	;Gui,  Add, Text, x445 y20 h35 0x11
 	Gui, Add, Picture, x410 y20 w25 h25 Icon19 gIpInfo, C:\WINDOWS\SYSTEM32\SHELL32.dll
 	Gui,  Add, Text, x445 y15 h35 0x11
@@ -492,7 +474,7 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_3% yp w140 h20, SubnetMask:
 	Gui, Font, S11 CDefault Normal, Courier
 	Gui, Add, Edit, x%xCol_1% y%yTop_Row1_Obj% w160 HWNDhGateway gGW_Label vGateway +Center
-	Gui, Add, Edit, x%xCol_2% yp w160 HWNDhUseable gUseableIP_Label vUseable +Center
+	Gui, Add, Edit, x%xCol_2% yp w160 HWNDhUseable vUseable +Center
 	Gui, Add, DropDownList, x%xCol_3% yp w160 vSubnetsDDL, 255.255.255.252||255.255.255.248|255.255.255.240|255.255.255.0
 	
 	; Top Row 2
@@ -552,45 +534,6 @@ GuiCreate() {
 	
 	Gui, Show, w540, SMB ToolBox
 	
-	; Get Adapters
-	GuiControl,, % hStatus, Getting Adapters...
-	GuiControl, +Disabled, AdaptersDDL
-	RunWait, PowerShell.exe Get-NetAdapter | Format-Table -Property Name | Out-File -FilePath %A_Temp%\NetInfo.txt -Width 300,, Hide
-	
-	Adapters := ""
-	
-	;get file length for Progress bar
-	FileRead, Text, %A_Temp%\NetInfo.txt
-	Loop, Parse, Text, `n, `r
-		Lines := A_Index
-	Lines--
-	
-	Loop, Read, %A_Temp%\NetInfo.txt
-	{
-		Position := 100/Lines * A_Index
-		GuiControl,, LoopProgress, % Position
-		Sleep, 50
-		
-		If (A_Index < 4 || A_LoopReadLine = "" || Instr(A_LoopReadLine, "Bluetooth")) {
-			Continue
-		}
-		
-		aName := Trim(A_LoopReadLine)
-		If (aName = "Ethernet")
-			Adapters .= RegexReplace(A_LoopReadLine, "^\s+|\s+$") "||"
-		Else
-			Adapters .= RegexReplace(A_LoopReadLine, "^\s+|\s+$") "|"
-	}
-	
-	If (FileExist(A_Temp "\NetInfo.txt")) {
-		FileDelete, %A_Temp%\NetInfo.txt
-	}
-	
-	GuiControl,, AdaptersDDL, % Adapters
-	GuiControl, -Disabled, AdaptersDDL
-	GuiControlGet, AdaptersDDL
-	AdapterIndex := GetAdapterIndex(AdaptersDDL)
-	
 	; Get Modem Names
 	GuiControl, +Disabled, ModemsDDL
 	
@@ -602,7 +545,7 @@ GuiCreate() {
 		modemNames .= name1 "|"
 	}
 	GuiControl,, ModemsDDL, % modemNames
-	GuiControlGet, AdaptersDDL
+	;GuiControlGet, AdaptersDDL
 	GuiControl, -Disabled, ModemsDDL
 	
 	SetTimer, ClearProgress, -100
@@ -635,26 +578,6 @@ GetCIDR(sub){
 	Return 0
 }
 
-GetAdapterIndex(ad){
-	
-	RunWait, PowerShell.exe Get-NetAdapter -Name %ad% | Format-List -Property IfIndex | Out-File -FilePath %A_Temp%\NetInfo.txt -Width 300,, Hide
-	Loop, read, %A_Temp%\NetInfo.txt
-	{
-		strPos := InStr(A_LoopReadLine, ":")
-		If (strPos != 0) {
-			StringRight, iPos, A_LoopReadLine, StrLen(A_LoopReadLine)-strPos
-			iPos := Trim(iPos)
-			Break
-		}	
-	}
-	
-	If (FileExist(A_Temp "\NetInfo.txt")) {
-		FileDelete, %A_Temp%\NetInfo.txt
-	}
-	
-	Return, iPos
-}
-
 ValidIP(a) {
 	Loop, Parse, a, .
 	{
@@ -682,6 +605,16 @@ setStatus(msg) {
 ProcessExist(Name){
 	Process, Exist, %Name%
 	Return Errorlevel
+}
+
+moveMsgBox(width) {
+	Global ; Assume-global mode
+	;~ Function to move a MsgBox to center of main gui
+	WinGetActiveStats, Title, W, H, X, Y
+	WinX := X+(W/2)-(width/2)
+	WinY := Y+100
+	SetTimer, WinMoveMsgBox, 20
+	Return
 }
 
 GuiSettings()
