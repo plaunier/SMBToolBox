@@ -54,18 +54,13 @@ ModemsDDL:
 		SplitPath, A_LoopFileName, name1, dir1, ext1, name_no_ext1, drive1
 		scriptNames .= "|" name_no_ext1
 	}
-	
 	scriptNames .= "||"
-	
 	ScriptDDL := ""
 	GuiControl,, ScriptDDL, % scriptNames
-	
+
 	;~ Enable Script selection and Connect Button after first selection
 	GuiControl, -Disabled, scriptDDL
 	GuiControl, -Disabled, Connect
-	
-	Gosub, ScriptDDL
-	Return
 }
 
 ScriptDDL:
@@ -79,9 +74,9 @@ ScriptDDL:
 	GuiControlGet, SubnetsDDL
 	GuiControlGet, DNS1
 	GuiControlGet, DNS2
-	ripkey := Presets.rip
+	GuiControlGet, RipKey
 	host := Presets.host
-	
+
 	file := A_WorkingDir "\Scripts\" ModemsDDL "\" ScriptDDL ".txt"
 	FileRead, script, % file
 	If (ValidIP(Gateway))
@@ -95,16 +90,16 @@ ScriptDDL:
 		script := StrReplace(script, "[GATEWAY]", Gateway)
 		script := StrReplace(script, "[NETWORK]", Network)
 	}
-	
+
 	;~ Find and Replace remaining values
 	If (ValidIP(Useable))
 		script := StrReplace(script, "[USEABLE]", Useable)
 	script := StrReplace(script, "[SUBNET]", SubnetsDDL)
 	script := StrReplace(script, "[DNS1]", DNS1)
 	script := StrReplace(script, "[DNS2]", DNS2)
-	script := StrReplace(script, "[RIPKEY]", ripkey)
+	script := StrReplace(script, "[RIPKEY]", RipKey)
 	script := StrReplace(script, "[HOST_NAME]", host)
-	
+
 	;~ Put Replaced script into Script Edit Box
 	GuiControl,, ScriptText, % script
 	Return
@@ -126,30 +121,143 @@ GW_Label:
 	Return
 }
 
-ChangeDefaults:
-{
-	;~ Routine when Settings image is clicked.
-	GuiSettings()
-	Return
-}
+OptionsMenuDefaults:
+WinGetActiveStats, Title, W, H, X, Y
+WinW := 470
+WinH := 175
+WinX := X+((W-WinW)/2)
+WinY := Y+50
 
-SettingCancel:
+Gui, 1:+Disabled +AlwaysOnTop
+Gui, 2:+AlwaysOnTop +LastFound -Resize
+Gui, 2:+Owner
+Gui, 2:Margin, 10, 10
+Gui, 2:Font, S10 CDefault Normal, Arial	
+Gui, 2:Add, Text, xm y10 w140 h20, RIP Key:
+Gui, 2:Add, Text, xp+155 yp w140 h20, DNS 1:
+Gui, 2:Add, Text, xp+155 yp w140 h20, DNS 2:
+Gui, 2:Font, S11 CDefault Normal, Courier
+Gui, 2:Add, Edit, xm yp+17 w140 +Center vDefaultRip, % Presets.rip
+Gui, 2:Add, Edit, xp+155 yp w140 +Center vDefaultDNS1, % Presets.d1
+Gui, 2:Add, Edit, xp+155 yp w140 +Center vDefaultDNS2, % Presets.d2
+Gui, 2:Add, Text, xm yp+40 w140 h20, Host Name:
+Gui, 2:Add, Edit, xm yp+17 w140 +Center vDefaultHost, % Presets.host
+
+; Vertical Line
+Gui, 2:Add, Text, xm yp+35 w450 0x10
+bY := WinH-40
+bX := (WinW-280)/3
+Gui, 2:Font, S11 CDefault Normal, Arial	
+Gui, 2:Add, Button, x%bX% y%bY% w140 +Center gSettingsClose, Cancel
+bX := 2*bX+140
+Gui, 2:Add, Button, x%bX% y%bY% w140 +Center gbSaveDefaults, Save Changes
+Gui, 2:Show, w%WinW% h%WinH% x%WinX% y%WinY%, Defaults
+Return
+
+JumpBoxDDL:
+GuiControlGet, JumpBoxDDL
+currentJumpBox := JumpBoxDDL
+iniwrite, % currentJumpBox, include\settings.ini, Defaults, current_jumpbox
+Guicontrol,, JumpBoxAddress, % Jumpbox[currentJumpBox].address
+Guicontrol,, JumpBoxPort, % Jumpbox[currentJumpBox].port
+Guicontrol,, JumpBoxUser, % Jumpbox[currentJumpBox].user
+Guicontrol,, JumpBoxPW, % Jumpbox[currentJumpBox].pw
+Return
+
+OptionsMenuJumpboxes:
+WinGetActiveStats, Title, W, H, X, Y
+WinW := 490
+WinH := 300
+WinX := X+((W-WinW)/2)
+WinY := Y+50
+stringDDL := ""
+for index, element in JumpBox
+{
+	stringDDL .= element.name
+	if (currentJumpBox = index)
+		stringDDL .= "||"
+	else
+		stringDDL .= "|"
+}
+Gui, 1:+Disabled +AlwaysOnTop
+Gui, 2:+AlwaysOnTop +LastFound -Resize
+Gui, 2:+Owner
+Gui, 2:Margin, 10, 10
+Gui, 2:Font, S10 CDefault Normal, Arial
+Gui, 2:Add, Text, x20 y10 w450 h50 +Center, % jumpBoxTXT
+Gui, 2:Add, Text, x10 yp+60 w470 0x10 		; Horizontal Line
+Gui, 2:Add, Text, x10 yp+20 w160 h20, JumpBox:
+Gui, 2:Add, DropDownList, x10 yp+20 w160 +Altsubmit vJumpBoxDDL gJumpBoxDDL, % stringDDL
+Gui, 2:Add, Text, x200 yp w100 h20 +Right, IP Address:
+Gui, 2:Add, Edit, x+10 yp w140 h20 +Center +ReadOnly vJumpBoxAddress, % Jumpbox[currentJumpBox].address
+Gui, 2:Add, Text, x200 yp+30 w100 h20 +Right, Port:
+Gui, 2:Add, Edit, x+10 yp w140 h20 +Center +ReadOnly vJumpBoxPort, % Jumpbox[currentJumpBox].port
+Gui, 2:Add, Text, x200 yp+30 w100 h20 +Right, User Name:
+Gui, 2:Add, Edit, x+10 yp w140 h20 +Center +ReadOnly vJumpBoxUser, % Jumpbox[currentJumpBox].user
+Gui, 2:Add, Text, x200 yp+30 w100 h20 +Right, Password:
+Gui, 2:Add, Edit, x+10 yp w140 h20 +Center +ReadOnly vJumpBoxPW, % Jumpbox[currentJumpBox].pw
+
+bX := (WinW-100)/2
+bY := WinH-40
+Gui, 2:Font, S11 CDefault Normal, Arial	
+Gui, 2:Add, Button, x%bX% y%bY% w100 gSettingsClose, Close
+Gui, 2:Show, w%WinW% h%WinH% x%WinX% y%WinY%, JumpBoxes
+Return
+
+HelpMenuScripts:
+WinGetActiveStats, Title, W, H, X, Y
+WinW := 490
+WinH := 220
+WinX := X+((W-WinW)/2)
+WinY := Y+50
+Gui, 1:+Disabled +AlwaysOnTop
+Gui, 2:+AlwaysOnTop +LastFound -Resize
+Gui, 2:+Owner
+Gui, 2:Margin, 10, 10
+Gui, 2:Font, S10 CDefault Normal, Arial	
+Gui, 2:Add, Text, x20 y10 w450 h350 +Center, % scriptsTXT
+bX := (WinW-100)/2
+bY := WinH-40
+Gui, 2:Font, S11 CDefault Normal, Arial	
+Gui, 2:Add, Button, x%bX% y%bY% w100 gSettingsClose, Close
+Gui, 2:Show, w%WinW% h%WinH% x%WinX% y%WinY%, Scripts
+Return
+
+HelpMenuAbout:
+WinGetActiveStats, Title, W, H, X, Y
+WinW := 490
+WinH := 400
+WinX := X+((W-WinW)/2)
+WinY := Y+50
+Gui, 1:+Disabled +AlwaysOnTop
+Gui, 2:+AlwaysOnTop +LastFound -Resize
+Gui, 2:+Owner
+Gui, 2:Margin, 10, 10
+Gui, 2:Font, S10 CDefault Normal, Arial	
+Gui, 2:Add, Text, x20 y10 w450 h350 +Center, % aboutTXT
+bX := (WinW-100)/2
+bY := WinH-40
+Gui, 2:Font, S11 CDefault Normal, Arial	
+Gui, 2:Add, Button, x%bX% y%bY% w100 gSettingsClose, Close
+Gui, 2:Show, w%WinW% h%WinH% x%WinX% y%WinY%, About
+Return
+
+
+SettingsClose:
 2GuiClose:
-{
-	;~ OnExit routine when closing Settings GUI
-	Gui, 1:-Disabled -AlwaysOnTop
-	Gui, 2:Destroy
-	Return	
-}
+;~ OnExit routine when closing Settings GUI
+Gui, 1:-Disabled -AlwaysOnTop
+Gui, 2:Destroy
+Return	
 
-NetInfo:
-{
-	;~ Opens 'Network Connections' Network image is clicked
-	Run, rundll32.exe shell32.dll`,Control_RunDLL ncpa.cpl
-	Return
-}
 
-IPInfo:
+CommandsMenuNetConnections:
+;~ Opens 'Network Connections' Network image is clicked
+Run, rundll32.exe shell32.dll`,Control_RunDLL ncpa.cpl
+Return
+
+
+CommandsMenuNetInfo:
 {
 	;~ Routine when Network Information image is clicked
 	;~ Queries network adaptor for current Network information
@@ -178,11 +286,32 @@ IPInfo:
 ;===============================================================================
 ; Button Events
 ;===============================================================================
-ButtonSaveChanges:
+bSaveDefaults:
 {
 	;~ Routine when settings Save Button is clicked
+	;~ Write defautls to settings.ini
+	;~ array= 1: DNS1, 2: DNS2, 3: Rip Key, 4: Host Name
+	WinName := "Save Settings?"
+	moveMsgBox(220)
+	Gui +OwnDialogs ;~ used to lock main gui until a selection is made
+	MsgBox, 308, %WinName%, Save Changes?
+	IfMsgBox Yes
+	{
+		GuiControlGet, DefaultRip
+		GuiControlGet, DefaultDNS1
+		GuiControlGet, DefaultDNS2
+		GuiControlGet, DefaultHost
+		Presets := {"d1": DefaultDNS1, "d2": DefaultDNS2, "rip": DefaultRip, "host": DefaultHost}
+		savePresets(Presets)
+		GuiControl, 1:, DNS1, % Presets.d1
+		GuiControl, 1:, DNS2, % Presets.d2
+		GuiControl, 1:, RipKey, % Presets.rip
+		Gui, 1:Submit, NoHide
+		GoSub, SettingsClose
+	}
 	Return
 }
+
 ButtonPINGGATEWAY:
 {
 	;~ Routine when Ping Gateway Button is clicked
@@ -296,10 +425,9 @@ ButtonCreateTunnel:
 			GuiControl,, % hStatus, Setting up HTTP tunnel...
 			;~ select the NE1 jumpbox
 			;~ TODO: Add this option into the settings menu
-			jb := 1 
 			Process, Close, %tunnelPID% ; Closes any existing instance
 			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
-			loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
+			loginArg := "-ssh " JumpBox[currentJumpBox].address " -P " JumpBox[currentJumpBox].port " -l " JumpBox[currentJumpBox].user " -pw " JumpBox[currentJumpBox].pw
 			tunnelArg := "-L 80:" TenDot ":80 -L 8080:" TenDot ":8080"
 			target := fileName " " loginArg " " tunnelArg
 			
@@ -329,7 +457,6 @@ ButtonConnecttoModem:
 	;~ TODO: Add functionality for D3.1 modems/routers since they do not use the 10dot modem IP like AWG modems
 	GuiControlGet, TenDot
 	If (ValidIP(TenDot)) {
-		jb := 1 ;~ Select the NE1 jumpbox | need to add this as an option in settings
 		;~ Calculate position for MsgBox
 		WinName := "Connect to Modem"
 		moveMsgBox(220)
@@ -339,7 +466,7 @@ ButtonConnecttoModem:
 		{
 			;~ Connect and login to selcted Jumpbox over ssh
 			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
-			loginArg := "-ssh " JumpBox[jb].address " -P " JumpBox[jb].port " -l " JumpBox[jb].user " -pw " JumpBox[jb].pw
+			loginArg := "-ssh " JumpBox[currentJumpBox].address " -P " JumpBox[currentJumpBox].port " -l " JumpBox[currentJumpBox].user " -pw " JumpBox[currentJumpBox].pw
 			target := fileName " " loginArg 
 			Run, %target%, %A_WorkingDir%\KiTTY,, sshPID
 			
@@ -407,14 +534,18 @@ OnLoad() {
 	Sleep, 1000
 	Gui,  9:Destroy
 	
-	;Presets := {"d1": "24.97.208.121", "d2": "24.97.208.122", "rip": "auth#rip", "host": "SPECTRUM"}
-	Presets := {"d1": "8.8.8.8", "d2": "8.8.4.4", "rip": "auth#rip", "host": "SPECTRUM"}
+	;~ Global variables
+	MultiLineVars()
+	Presets := loadPresets()  ;~ Deafult Presets := {"d1": "24.97.208.121", "d2": "24.97.208.122", "rip": "auth#rip", "host": "SPECTRUM"}
 	ReplaceValue := {"net": "[NETWORK]", "gw": "[GATEWAY]", "use": "[USEABLE]", "sub": "[SUBNET]", "d1": "[DNS1]", "d2": "[DNS2]", "rip": "[RIPKEY]", "host": "[HOSTNAME]"}
-	
 	JumpBox := []
-	JumpBox[1] := {"name": "NorthEast 1", "address": "24.24.43.132", "port": "22", "user": "bctechcpe", "pw": "T3chBCcp3"}
-	JumpBox[2] := {"name": "NorthEast 2", "address": "24.24.43.133", "port": "22", "user": "bctechcpe", "pw": "T3chBCcp3"}
-	JumpBox[3] := {"name": "Test Box", "address": "192.168.1.202", "port": "22", "user": "technician", "pw": "technician"}
+	iniread, currentJumpBox, include\settings.ini, Defaults, current_jumpbox	
+	iniread, array_string, include\settings.ini, JumpBoxes
+	Loop,Parse,array_string,`n,`r
+	{
+		array := StrSplit(A_LoopField,"|")
+		JumpBox[A_Index] := {"name": SubStr(array[1],InStr(array[1], "=")+1, StrLen(array[1])), "address": array[2], "port": array[3], "user": array[4], "pw": array[5]}
+	}
 	
 	If (FileExist("ping.txt")) {
 		FileDelete, ping.txt
@@ -440,8 +571,11 @@ GuiCreate() {
 	yTop_Row0_Text := 10
 	yTop_Row0_Obj := 30
 	
-	yTop_Row1_Text := 70
-	yTop_Row1_Obj := 87
+	;yTop_Row1_Text := 70
+	;yTop_Row1_Obj := 87
+	yTop_Row1_Text := 10
+	yTop_Row1_Obj := 27
+	
 	yTop_Row2_Text := yTop_Row1_Text + 50
 	yTop_Row2_Obj := yTop_Row1_Obj + 50
 	yTop_Row3_Button := yTop_Row2_Text + 65
@@ -453,16 +587,23 @@ GuiCreate() {
 	;Gui, +AlwaysOnTop +LastFound -Resize +HWNDhGui
 	Gui, +LastFound -Resize +HWNDhGui
 	Gui, Margin, 10, 10
-	Gui, Font, S11 CDefault Normal, Courier
 	
-	; Top Row 0
+	Menu, OptionsMenu, Add, &Defaults, OptionsMenuDefaults 
+	Menu, OptionsMenu, Add, &Jumpboxes, OptionsMenuJumpboxes 
+	Menu, OptionsMenu, Add
+	Menu, OptionsMenu, Add, E&xit, GuiClose
 	
-	Gui, Font, S10 CDefault Normal, Arial
-	Gui, Add, Picture, x410 y20 w25 h25 Icon19 gIpInfo, C:\WINDOWS\SYSTEM32\SHELL32.dll
-	Gui,  Add, Text, x445 y15 h35 0x11
-	Gui, Add, Picture, x455 y20 w25 h25 Icon89 gNetInfo, C:\WINDOWS\SYSTEM32\SHELL32.dll
-	Gui,  Add, Text, x490 y15 h35 0x11
-	Gui, Add, Picture, x500 y20 w25 h25 Icon91 gChangeDefaults, C:\WINDOWS\SYSTEM32\SHELL32.dll
+	Menu, CommandsMenu, Add, &Show Network Information, CommandsMenuNetInfo
+	Menu, CommandsMenu, Add, &Open Network Connections, CommandsMenuNetConnections
+	
+	Menu, HelpMenu, Add, &Scripts, HelpMenuScripts
+	Menu, HelpMenu, Add, &About, HelpMenuAbout
+	
+	; Attach the sub-menus that were created above.
+	Menu, MyMenuBar, Add, &Options, :OptionsMenu
+	Menu, MyMenuBar, Add, &Commands, :CommandsMenu
+	Menu, MyMenuBar, Add, &Help, :HelpMenu
+	Gui, Menu, MyMenuBar ; Attach MyMenuBar to the GUI
 	
 	; Top Row 1
 	Gui, Font, S9 CDefault Normal, Arial
@@ -470,7 +611,7 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_2% yp w140 h20, Usable:
 	Gui, Add, Text, x%xCol_3% yp w140 h20, SubnetMask:
 	Gui, Font, S11 CDefault Normal, Courier
-	Gui, Add, Edit, x%xCol_1% y%yTop_Row1_Obj% w160 HWNDhGateway gGW_Label vGateway +Center
+	Gui, Add, Edit, x%xCol_1% y%yTop_Row1_Obj% w160 gGW_Label vGateway +Center
 	Gui, Add, Edit, x%xCol_2% yp w160 HWNDhUseable vUseable +Center
 	Gui, Add, DropDownList, x%xCol_3% yp w160 vSubnetsDDL, 255.255.255.252||255.255.255.248|255.255.255.240|255.255.255.0
 	
@@ -480,9 +621,9 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_2% y%yTop_Row2_Text% w140 h20, DNS 1:
 	Gui, Add, Text, x%xCol_3% y%yTop_Row2_Text% w140 h20, DNS 2:
 	Gui, Font, S11 CDefault Normal, Courier
-	Gui, Add, Edit, x%xCol_1% y%yTop_Row2_Obj% w160 HWNDhRipKey +ReadOnly +Center, % Presets.rip
-	Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 HWNDhDNS1 vDNS1 +ReadOnly +Center, % Presets.d1
-	Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 HWNDhDNS2 vDNS2 +ReadOnly +Center, % Presets.d2
+	Gui, Add, Edit, x%xCol_1% y%yTop_Row2_Obj% w160 vRipKey +ReadOnly +Center, % Presets.rip
+	Gui, Add, Edit, x%xCol_2% y%yTop_Row2_Obj% w160 vDNS1 +ReadOnly +Center, % Presets.d1
+	Gui, Add, Edit, x%xCol_3% y%yTop_Row2_Obj% w160 vDNS2 +ReadOnly +Center, % Presets.d2
 	
 	; Top Button Row
 	Gui, Font, S10 CDefault Bold, Arial
@@ -556,14 +697,6 @@ GuiEscape(GuiHwnd) {
 	ExitApp ; Terminate the script unconditionally
 }
 
-GetIPByAdaptor(adaptorName) {
-	objWMIService := ComObjGet("winmgmts:{impersonationLevel = impersonate}!\\.\root\cimv2")
-	colItems := objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapter WHERE NetConnectionID = '" adaptorName "'")._NewEnum, colItems[objItem]
-	colItems := objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE InterfaceIndex = '" objItem.InterfaceIndex "'")._NewEnum, colItems[objItem]
-	
-	Return objItem.IPAddress[0]
-}
-
 GetCIDR(sub){
 	If (ValidIP(sub)) {
 		StringSplit, Octets, sub, .
@@ -606,30 +739,41 @@ moveMsgBox(width) {
 	Global ; Assume-global mode
 	;~ Function to move a MsgBox to center of main gui
 	WinGetActiveStats, Title, W, H, X, Y
-	WinX := X+(W/2)-(width/2)
+	WinX := X+((W-width)/2)
 	WinY := Y+100
 	SetTimer, WinMoveMsgBox, 20
 	Return
 }
 
-GuiSettings()
-{
-	Global ; Assume-global mode
-	width := 490
-	
-	WinGetActiveStats, Title, W, H, X, Y
-	WinX := X+(W/2)-(width/2)
-	WinY := Y+100
+loadPresets() {
+	;~ load default values from settins.ini
+	;~ array = 1: DNS1, 2: DNS2, 3: Rip Key, 4: Host Name
+	iniread, array_string, include\settings.ini, Defaults, defaults
+	delim := "|"
+	defaults := StrSplit(array_string,delim)
+	Presets := {"d1": defaults[1], "d2": defaults[2], "rip": defaults[3], "host": defaults[4]}
+	Return Presets
+}
+
+savePresets(presets){
+	;~ Save default values to settins.ini
+	;~ defaults array = 1: DNS1, 2: DNS2, 3: Rip Key, 4: Host Name
+	delim := "|"
+	array_string := presets.d1 . delim . presets.d2 . delim . presets.rip . delim . presets.host 
+	iniwrite, % array_string, include\settings.ini, Defaults, defaults
+	Return
+}
+
+MultiLineVars() {
+	Global
 	
 	jumpBoxTXT =
 (
-
 Jumpbox data can be modified in the config file.
 
-
-To add or change jumpboxes, use a text editor to open the file (SMBToolBox.ini)
-
+To add or change jumpboxes, use a text editor to open the file (Settings.ini)
 )
+	
 	scriptsTXT =
 (
 Scripts are loaded from the \Scripts\ folder
@@ -640,9 +784,8 @@ Modem types are derived from the folder names.
 
 Script's should utilize these key words:
 [NETWORK] [GATEWAY] [USEABLE] [SUBNET] [DNS1] [DNS2] [RIPKEY] [HOST_NAME]
-
-
 )
+	
 	aboutTXT =
 (
 
@@ -660,51 +803,12 @@ TODO: Make this tab sound more Professional.
 
 
 
+
 Created by: Paul Launier
 paul.launier@charter.com
 )
-	
-	Gui, 1:+Disabled +AlwaysOnTop
-	Gui, 2:+AlwaysOnTop +LastFound -Resize +HWNDh2Gui
-	Gui, 2:+Owner
-	Gui, 2:Margin, 10, 10
-	
-	Gui, 2:Font, S10 CDefault Normal, Arial	
-	Gui, 2:Add, Tab3, x10 y10 w470 h350, Defaults||Jump Boxes|Scripts|About|
-	
-	Gui, 2:Tab, Defaults
-	Gui, 2:Add, Text, w140 h20, RIP Key:
-	Gui, 2:Add, Text, xp+155 yp w140 h20, DNS 1:
-	Gui, 2:Add, Text, xp+155 yp w140 h20, DNS 2:
-	Gui, 2:Font, S11 CDefault Normal, Courier
-	Gui, 2:Add, Edit, x20 yp+17 w140 +Center, % Presets.rip
-	Gui, 2:Add, Edit, xp+155 yp w140 +Center, % Presets.d1
-	Gui, 2:Add, Edit, xp+155 yp w140 +Center, % Presets.d2
-	
-	;Tab Jump Boxes
-	Gui, 2:Font, S10 CDefault Normal, Arial	
-	Gui, 2:Tab, Jump Boxes
-	Gui, 2:Add, Text, w450 h150 +Center vSettingsJB, % jumpBoxTXT
-	
-	; Tab Scripts
-	Gui, 2:Tab, Scripts
-	Gui, 2:Add, Text, w450 h150 +Center, % ScriptsTXT
-	
-	; Tab About
-	Gui, 2:Tab, About
-	Gui, 2:Add, Text, x20 y40 w450 h350 +Center, % aboutTXT
-	
-	Gui, 2:Tab, ;exit the tabs
-	
-	Gui, 2:Font, S11 CDefault Bold, Arial
-	Gui, 2:Add, Button, x73 y380 w140 h25 +Center gSettingCancel, Cancel
-	Gui, 2:Add, Button, x276 y380 w140 h25 +Center, Save Changes
-	
-	Gui, 2:Show, w%width% h410 x%WinX% y%WinY%, Default Settings
-	
-	Return
+	return
 }
-
 ;===============================================================================
 ; Hotkeys
 ;===============================================================================
