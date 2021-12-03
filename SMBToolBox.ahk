@@ -29,7 +29,7 @@ ClearProgress:
 {
 	;~ Timer routine to reset the Progress bar on Main GUI
 	SetTimer,, Off
-	GuiControl,,LoopProgress, 0
+	GuiControl, 1:,LoopProgress, 0
 	Return
 }
 
@@ -127,7 +127,6 @@ WinW := 470
 WinH := 175
 WinX := X+((W-WinW)/2)
 WinY := Y+50
-
 Gui, 1:+Disabled +AlwaysOnTop
 Gui, 2:+AlwaysOnTop +LastFound -Resize
 Gui, 2:+Owner
@@ -142,17 +141,19 @@ Gui, 2:Add, Edit, xp+155 yp w140 +Center vDefaultDNS1, % Presets.d1
 Gui, 2:Add, Edit, xp+155 yp w140 +Center vDefaultDNS2, % Presets.d2
 Gui, 2:Add, Text, xm yp+40 w140 h20, Host Name:
 Gui, 2:Add, Edit, xm yp+17 w140 +Center vDefaultHost, % Presets.host
-
-; Vertical Line
-Gui, 2:Add, Text, xm yp+35 w450 0x10
+Gui, 2:Add, Text, xm yp+35 w450 0x10 ; Vertical Line
+bW := 125
 bY := WinH-40
-bX := (WinW-280)/3
-Gui, 2:Font, S11 CDefault Normal, Arial	
-Gui, 2:Add, Button, x%bX% y%bY% w140 +Center gSettingsClose, Cancel
-bX := 2*bX+140
-Gui, 2:Add, Button, x%bX% y%bY% w140 +Center gbSaveDefaults, Save Changes
+bX := (WinW-(3*bW))/4
+Gui, 2:Font, S11 CDefault Normal, Arial
+Gui, 2:Add, Button, x%bX% y%bY% w%bW% +Center gbSaveDefaults, Save Changes
+bX2 := (2*bX) + bW
+Gui, 2:Add, Button, x%bX2% yp w%bW% +Center gbNEDefaults, Default Values
+bX3 := bX2 + bW + bX
+Gui, 2:Add, Button, x%bX3% y%bY% w%bW% +Center gSettingsClose, Cancel
 Gui, 2:Show, w%WinW% h%WinH% x%WinX% y%WinY%, Defaults
 Return
+
 
 JumpBoxDDL:
 GuiControlGet, JumpBoxDDL
@@ -286,11 +287,29 @@ CommandsMenuNetInfo:
 ;===============================================================================
 ; Button Events
 ;===============================================================================
+bNEDefaults:
+;~ Routine when Load Defaults Button is clicked
+
+iniread, array_string, include\settings.ini, Defaults, NEdefaults, 0
+if array_string
+{
+	delim := "|"
+	defaults := StrSplit(array_string,delim)
+	GuiControl, 2:, DefaultDNS1, % defaults[1]
+	GuiControl, 2:, DefaultDNS2, % defaults[2]
+	GuiControl, 2:, DefaultRip, % defaults[3]
+	GuiControl, 2:, DefaultHost, % defaults[4]
+}
+;GuiControl, 2:, DefaultDNS1, 24.97.208.121
+;GuiControl, 2:, DefaultDNS2, 24.97.208.122
+;GuiControl, 2:, DefaultRip, auth#rip
+;GuiControl, 2:, DefaultHost, SPECTRUM
+Return
+
 bSaveDefaults:
 {
 	;~ Routine when settings Save Button is clicked
 	;~ Write defautls to settings.ini
-	;~ array= 1: DNS1, 2: DNS2, 3: Rip Key, 4: Host Name
 	WinName := "Save Settings?"
 	moveMsgBox(220)
 	Gui +OwnDialogs ;~ used to lock main gui until a selection is made
@@ -307,7 +326,22 @@ bSaveDefaults:
 		GuiControl, 1:, DNS2, % Presets.d2
 		GuiControl, 1:, RipKey, % Presets.rip
 		Gui, 1:Submit, NoHide
-		GoSub, SettingsClose
+		;GoSub, SettingsClose
+		Gui, 2:Destroy
+		GuiControl,, % hStatus, Saving defaults...
+		;~ show a status bar progression over 1000ms
+		;~ TODO: make this an accurate calculation for the set static routine
+		iCount := 10
+		Loop, %iCount% 
+		{
+			Position := 100/iCount * A_Index
+			GuiControl, 1:, LoopProgress, % Position
+			Sleep, 100
+		}
+		;~ reenable main gui and reset status
+		Gui, 1:-Disabled -AlwaysOnTop
+		SetTimer, ClearProgress, -500
+		SetTimer, ReadyStatus, -500
 	}
 	Return
 }
@@ -366,7 +400,7 @@ ButtonSTATIC:
 			Loop, %iCount% 
 			{
 				Position := 100/iCount * A_Index
-				GuiControl,, LoopProgress, % Position
+				GuiControl, 1:, LoopProgress, % Position
 				Sleep, 100
 			}
 			;~ reenable main gui and reset status
@@ -399,7 +433,7 @@ ButtonDHCP:
 		Loop, %iCount% 
 		{
 			Position := 100/iCount * A_Index
-			GuiControl,, LoopProgress, % Position
+			GuiControl, 1:, LoopProgress, % Position
 			Sleep, 100
 		}
 		;~ reenable main gui and reset status
@@ -438,7 +472,7 @@ ButtonCreateTunnel:
 			Loop, %iCount% 
 			{
 				Position := 100/iCount * A_Index
-				GuiControl,, LoopProgress, % Position
+				GuiControl, 1:, LoopProgress, % Position
 				Sleep, 100
 			}
 			SetTimer, ClearProgress, -500
@@ -464,6 +498,7 @@ ButtonConnecttoModem:
 		MsgBox, 4, %WinName%, Connet to Jumpbox?
 		IfMsgBox, Yes
 		{
+			Process, Close, %sshPID% ; Closes any existing instance
 			;~ Connect and login to selcted Jumpbox over ssh
 			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
 			loginArg := "-ssh " JumpBox[currentJumpBox].address " -P " JumpBox[currentJumpBox].port " -l " JumpBox[currentJumpBox].user " -pw " JumpBox[currentJumpBox].pw
@@ -492,9 +527,9 @@ ButtonConnecttoModem:
 		}
 	}
 	Else {
-		setStatus("Invalid 10(dot) IP")
+		setStatus("Invalid Modem IP")
 		Gui +OwnDialogs
-		tToolTip("Invalid 10(dot) IP")
+		tToolTip("Invalid Modem IP")
 	}
 	Return
 }
@@ -593,7 +628,7 @@ GuiCreate() {
 	Menu, OptionsMenu, Add
 	Menu, OptionsMenu, Add, E&xit, GuiClose
 	
-	Menu, CommandsMenu, Add, &Show Network Information, CommandsMenuNetInfo
+	Menu, CommandsMenu, Add, &Network Adapter Information, CommandsMenuNetInfo
 	Menu, CommandsMenu, Add, &Open Network Connections, CommandsMenuNetConnections
 	
 	Menu, HelpMenu, Add, &Scripts, HelpMenuScripts
@@ -769,9 +804,9 @@ MultiLineVars() {
 	
 	jumpBoxTXT =
 (
-Jumpbox data can be modified in the config file.
+Jumpbox data can be modified in the settings file.
 
-To add or change jumpboxes, use a text editor to open the file (Settings.ini)
+To add or modify jumpboxes, use a text editor to open the file (Settings.ini)
 )
 	
 	scriptsTXT =
@@ -792,10 +827,10 @@ Script's should utilize these key words:
 Spectrum Business Class Tool Box
 
 
-This tool is intented for orginizational use by Charter Communication's employee's.
+This tool is intented for orginizational use only.
 
 
-If you are a Charter employee that does not understand this tool's purpose then it is not intended for you; delete and move on. 
+If you do not understand this tool's purpose then it is not intended for you; delete and move on. 
 Seriously, how did you even get this?
 	
 

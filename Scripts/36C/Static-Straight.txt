@@ -21,7 +21,7 @@ Fragmented-ip disable
 Arp-storms disable
 Sip-alg disable
 Interface wireless broadcast_ssid disable
-Interface wireless primary-network  disable
+Interface wireless primary-network disable
 Interface wireless shutdown
 Write
 reset
