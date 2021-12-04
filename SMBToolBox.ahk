@@ -38,7 +38,7 @@ WinMoveMsgBox:
 	;~ Timer routine to move a MsgBox
 	If WinExist(WinName)
 		SetTimer, WinMoveMsgBox, Off
-	WinMove, %WinName%, , %WinX%, %WinY%
+	WinMove, %WinName%, , %WinX%, %WinY%, %WinW%
 	Return
 }
 
@@ -46,6 +46,14 @@ ModemsDDL:
 {
 	;~ Drop Down List routine - Modem Model
 	GuiControlGet, ModemsDDL
+	If InStr(ModemsDDL, "Router")
+	{
+		GuiControl,, Connect, Connect to Modem
+		GuiControl,, ModemIPtxt, Modem IP:
+	} Else {
+		GuiControl,, Connect, Connect to Jump Box
+		GuiControl,, ModemIPtxt, 10(dot) Modem IP:
+	}
 	scriptNames := ""
 	scriptFolder := A_WorkingDir "\Scripts\" ModemsDDL "\"
 	;~ Create script drop down list from Scripts directory
@@ -57,7 +65,7 @@ ModemsDDL:
 	scriptNames .= "||"
 	ScriptDDL := ""
 	GuiControl,, ScriptDDL, % scriptNames
-
+	
 	;~ Enable Script selection and Connect Button after first selection
 	GuiControl, -Disabled, scriptDDL
 	GuiControl, -Disabled, Connect
@@ -448,12 +456,12 @@ ButtonCreateTunnel:
 {
 	;~ Routine when Create Tunnel button is clicked
 	;~ Use Kitty to create a tunnel through a company JumpBox to the modem's 10dot IP address
-	GuiControlGet, TenDot
-	If (ValidIP(TenDot)) {
+	GuiControlGet, ModemIP
+	If (ValidIP(ModemIP)) {
 		WinName := "Create Tunnel?"
 		moveMsgBox(220)
 		Gui +OwnDialogs ;~ lock main gui until selection is made
-		MsgBox, 308, %WinName%, Create tunnel to:`n     %TenDot%
+		MsgBox, 308, %WinName%, Create tunnel to:`n     %ModemIP%
 		IfMsgBox Yes
 		{		
 			GuiControl,, % hStatus, Setting up HTTP tunnel...
@@ -462,7 +470,7 @@ ButtonCreateTunnel:
 			Process, Close, %tunnelPID% ; Closes any existing instance
 			fileName := A_WorkingDir "\KiTTY\KiTTY.exe"
 			loginArg := "-ssh " JumpBox[currentJumpBox].address " -P " JumpBox[currentJumpBox].port " -l " JumpBox[currentJumpBox].user " -pw " JumpBox[currentJumpBox].pw
-			tunnelArg := "-L 80:" TenDot ":80 -L 8080:" TenDot ":8080"
+			tunnelArg := "-L 80:" ModemIP ":80 -L 8080:" ModemIP ":8080"
 			target := fileName " " loginArg " " tunnelArg
 			
 			Run, %target%, %A_WorkingDir%\KiTTY, Minimize Hide, tunnelPID
@@ -477,10 +485,21 @@ ButtonCreateTunnel:
 			}
 			SetTimer, ClearProgress, -500
 			SetTimer, ReadyStatus, -500
+			
+			;~ Sleep, 500
+			;~ Open Modem Gui page in chrome
+			;~ WinName := "Open Gui?"
+			;~ moveMsgBox(220)
+			;~ Gui +OwnDialogs ;~ lock main gui until selection is made
+			;~ MsgBox, 308, %WinName%, Open Modem Gui in Chrome?
+			;~ IfMsgBox Yes
+			;~ {
+				;~ Run, Chrome.exe "http://localhost"
+			;~ }
 		}
 	} Else {
-		setStatus("Invalid 10(dot) IP")
-		tToolTip("Invalid 10(dot) IP")
+		setStatus("Invalid 10(dot) Modem IP")
+		tToolTip("Invalid 10(dot) Modem IP")
 	}
 	Return
 }
@@ -489,12 +508,25 @@ ButtonConnecttoModem:
 {
 	;~ Routine when Connect to Modem button is clicked
 	;~ TODO: Add functionality for D3.1 modems/routers since they do not use the 10dot modem IP like AWG modems
-	GuiControlGet, TenDot
-	If (ValidIP(TenDot)) {
-		;~ Calculate position for MsgBox
+	GuiControlGet, ModemIP
+	GuiControlGet, ModemsDDL
+	StringSplit, Octets, ModemIP, .
+	If InStr(ModemsDDL, "Router") {
+		If (!ValidIP(ModemIP) OR (Octets1 = 10)) {
+			setStatus("Invalid Modem IP")
+			Gui +OwnDialogs
+			tToolTip("Invalid Modem IP")			
+		} Else {
+			MsgBox Router Routine
+		}
+	} Else If (!ValidIP(ModemIP) OR (Octets1 != 10)) {
+		setStatus("Invalid 10(dot) IP")
+		Gui +OwnDialogs
+		tToolTip("Invalid 10(dot) IP")
+	} Else {	
 		WinName := "Connect to Modem"
 		moveMsgBox(220)
-		Gui +OwnDialogs ;~ lock main gui until a slection is made
+		Gui +OwnDialogs ;~ lock main gui until a selection is made
 		MsgBox, 4, %WinName%, Connet to Jumpbox?
 		IfMsgBox, Yes
 		{
@@ -507,29 +539,22 @@ ButtonConnecttoModem:
 			
 			;~ send telnet command to Jumpbox which will connect to the modem
 			WinName := "Telnet to Modem"
-			moveMsgBox(220)
-			Gui +OwnDialogs ;~ lock main gui until a slection is made
+			moveMsgBox(250)
+			Gui +OwnDialogs ;~ lock main gui until a selection is made
 			;MsgBox,0,Telnet, When Ready: Press Ok to Telnet to modem.
-			MsgBox,0,Telnet, Wait for Jump Box to Connect!`n`nClick OK to Telnet to %TenDot%`n`nUsername:`ttechnician`nPassword:`t(Copied to Clipboard)
+			MsgBox, 0, %WinName%, Wait for Jump Box to Connect!`n`nClick OK to Telnet to %ModemIP%`n`nUsername:`t%awgUser%`nPassword:`t(Copied to Clipboard)
 			IfMsgBox, OK
 			{
 				IF ProcessExist(sshPID) 
 				{
-					sendText := "telnet " TenDot
-					Clipboard := "AWG_Password"
+					sendText := "telnet " ModemIP
+					Clipboard := awgPassword
 					WinActivate, ahk_pid %sshPID%
 					Sleep, 100
 					SendInput %sendText%{Enter}
-					;Send {Enter}
 				}
-				
 			}
 		}
-	}
-	Else {
-		setStatus("Invalid Modem IP")
-		Gui +OwnDialogs
-		tToolTip("Invalid Modem IP")
 	}
 	Return
 }
@@ -574,7 +599,9 @@ OnLoad() {
 	Presets := loadPresets()  ;~ Deafult Presets := {"d1": "24.97.208.121", "d2": "24.97.208.122", "rip": "auth#rip", "host": "SPECTRUM"}
 	ReplaceValue := {"net": "[NETWORK]", "gw": "[GATEWAY]", "use": "[USEABLE]", "sub": "[SUBNET]", "d1": "[DNS1]", "d2": "[DNS2]", "rip": "[RIPKEY]", "host": "[HOSTNAME]"}
 	JumpBox := []
-	iniread, currentJumpBox, include\settings.ini, Defaults, current_jumpbox	
+	iniread, currentJumpBox, include\settings.ini, Defaults, current_jumpbox
+	iniread, awgUser, include\settings.ini, Defaults, awg_user
+	iniread, awgPassword, include\settings.ini, Defaults, awg_pw
 	iniread, array_string, include\settings.ini, JumpBoxes
 	Loop,Parse,array_string,`n,`r
 	{
@@ -672,11 +699,11 @@ GuiCreate() {
 	
 	; Mid Row1
 	Gui, Font, S9 CDefault Normal, Arial
-	Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h20, Modem IP - 10(dot):
-	Gui, Add, Text, x%xCol_2% y%yMid_Row1_Text% w160 h20 , Modem Model:
-	Gui, Add, Text, x%xCol_3% y%yMid_Row1_Text% w160 h20 , Script:
+	Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h17 vModemIPtxt, Modem IP:
+	Gui, Add, Text, x%xCol_2% y%yMid_Row1_Text% w160 h17, Modem Model:
+	Gui, Add, Text, x%xCol_3% y%yMid_Row1_Text% w160 h17, Script:
 	Gui, Font, S11 CDefault Normal, Courier
-	Gui, Add, Edit, x%xCol_1% y%yMid_Row1_Obj% w160 vTenDot +Center	
+	Gui, Add, Edit, x%xCol_1% y%yMid_Row1_Obj% w160 vModemIP +Center	
 	Gui, Font, S10 CDefault Normal, Arial
 	Gui, Add, DropDownList, x%xCol_2% y%yMid_Row1_Obj% w160 vModemsDDL gModemsDDL +Disabled
 	Gui, Add, DropDownList, x%xCol_3% y%yMid_Row1_Obj% w160 vScriptDDL gScriptDDL +Disabled, <-- Select Modem||
@@ -774,6 +801,7 @@ moveMsgBox(width) {
 	Global ; Assume-global mode
 	;~ Function to move a MsgBox to center of main gui
 	WinGetActiveStats, Title, W, H, X, Y
+	WinW := width
 	WinX := X+((W-width)/2)
 	WinY := Y+100
 	SetTimer, WinMoveMsgBox, 20
