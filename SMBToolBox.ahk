@@ -156,7 +156,7 @@ bX := (WinW-(3*bW))/4
 Gui, 2:Font, S11 CDefault Normal, Arial
 Gui, 2:Add, Button, x%bX% y%bY% w%bW% +Center gbSaveDefaults, Save Changes
 bX2 := (2*bX) + bW
-Gui, 2:Add, Button, x%bX2% yp w%bW% +Center gbNEDefaults, Default Values
+Gui, 2:Add, Button, x%bX2% yp w%bW% +Center gbResetValues, Reset Values
 bX3 := bX2 + bW + bX
 Gui, 2:Add, Button, x%bX3% y%bY% w%bW% +Center gSettingsClose, Cancel
 Gui, 2:Show, w%WinW% h%WinH% x%WinX% y%WinY%, Defaults
@@ -295,9 +295,8 @@ CommandsMenuNetInfo:
 ;===============================================================================
 ; Button Events
 ;===============================================================================
-bNEDefaults:
-;~ Routine when Load Defaults Button is clicked
-
+bResetValues:
+;~ Routine when Reset Values Button is clicked
 iniread, array_string, include\settings.ini, Defaults, NEdefaults, 0
 if array_string
 {
@@ -483,27 +482,35 @@ ButtonCreateTunnel:
 				GuiControl, 1:, LoopProgress, % Position
 				Sleep, 100
 			}
-			SetTimer, ClearProgress, -500
-			SetTimer, ReadyStatus, -500
 			
-			;~ Sleep, 500
-			;~ Open Modem Gui page in chrome
-			;~ WinName := "Open Gui?"
-			;~ moveMsgBox(220)
-			;~ Gui +OwnDialogs ;~ lock main gui until selection is made
-			;~ MsgBox, 308, %WinName%, Open Modem Gui in Chrome?
-			;~ IfMsgBox Yes
-			;~ {
-				;~ Run, Chrome.exe "http://localhost"
-			;~ }
+			Sleep, 300
+			GoSub, ClearProgress
+			GoSub, ReadyStatus
+			GuiControlGet, ModemsDDL
+			If ModemsDDL
+			{
+				Sleep, 500
+				;~ Open Modem Gui page in chrome
+				WinName := "Open Gui?"
+				moveMsgBox(220)
+				Gui +OwnDialogs ;~ lock main gui until selection is made
+				MsgBox, 262148, %WinName%, Open Modem's Gui in Chrome?`n`nUser:`t%awgUser%`nPW: (Copied to Clipboard)
+				IfMsgBox Yes
+				{
+					If !InStr(ModemsDDL, "Router"){
+						Clipboard := awgPassword
+					}
+					Run, Chrome.exe "http://127.0.0.1"
+				}
+			}
+		} Else {
+			setStatus("Invalid 10(dot) Modem IP")
+			tToolTip("Invalid 10(dot) Modem IP")
 		}
-	} Else {
-		setStatus("Invalid 10(dot) Modem IP")
-		tToolTip("Invalid 10(dot) Modem IP")
+		Return
 	}
-	Return
 }
-
+	
 ButtonConnecttoModem:
 {
 	;~ Routine when Connect to Modem button is clicked
@@ -702,7 +709,7 @@ GuiCreate() {
 	Gui, Add, Text, x%xCol_1% y%yMid_Row1_Text% w160 h17 vModemIPtxt, Modem IP:
 	Gui, Add, Text, x%xCol_2% y%yMid_Row1_Text% w160 h17, Modem Model:
 	Gui, Add, Text, x%xCol_3% y%yMid_Row1_Text% w160 h17, Script:
-	Gui, Font, S11 CDefault Normal, Courier
+	Gui, Font, S12 CDefault Normal, Courier
 	Gui, Add, Edit, x%xCol_1% y%yMid_Row1_Obj% w160 vModemIP +Center	
 	Gui, Font, S10 CDefault Normal, Arial
 	Gui, Add, DropDownList, x%xCol_2% y%yMid_Row1_Obj% w160 vModemsDDL gModemsDDL +Disabled
@@ -836,8 +843,8 @@ Jumpbox data can be modified in the settings file.
 
 To add or modify jumpboxes, use a text editor to open the file (Settings.ini)
 )
-	
-	scriptsTXT =
+		
+		scriptsTXT =
 (
 Scripts are loaded from the \Scripts\ folder
 
@@ -848,8 +855,8 @@ Modem types are derived from the folder names.
 Script's should utilize these key words:
 [NETWORK] [GATEWAY] [USEABLE] [SUBNET] [DNS1] [DNS2] [RIPKEY] [HOST_NAME]
 )
-	
-	aboutTXT =
+		
+		aboutTXT =
 (
 
 Spectrum Business Class Tool Box
@@ -870,10 +877,10 @@ TODO: Make this tab sound more Professional.
 Created by: Paul Launier
 paul.launier@charter.com
 )
-	return
-}
-;===============================================================================
-; Hotkeys
-;===============================================================================
-
-;===============================================================================
+		return
+	}
+	;===============================================================================
+	; Hotkeys
+	;===============================================================================
+	
+	;===============================================================================
